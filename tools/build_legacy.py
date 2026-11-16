@@ -68,5 +68,9 @@ s=s.replace('老師預覽','老師試看').replace('老师预览','老师试看'
 must(";今屆日期見下方「下一步」。",";日期以《學生需知》為準。")
 must(";今届日期见下方“下一步”。",";日期以《学生需知》为准。")
 must(" This year’s dates are under “Next step” below."," See the Student Notes for dates.")
+# R20 刪去不顯示但仍在公開檔內的個人聯絡資料(WhatsApp 號碼、微信號)
+s=re.sub(r'"ctaContact": "[^"]*"','"ctaContact": ""',s)
+s=s.replace("'https://wa.me/85257953263'","''")
+assert 'Scarlett' not in s and '5795' not in s and 'wa.me' not in s
 open(os.path.join(root,'play','train.html'),'w',encoding='utf-8').write(s)
 print('train.html',len(s.encode()),'bytes; images',len(pairs))
