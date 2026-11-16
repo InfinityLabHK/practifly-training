@@ -572,9 +572,9 @@ const TOURT = ['tour-today', 'tour-plz', 'tour-dl'];
 function tourPaint() {
   document.querySelectorAll('.tourhl').forEach(x => x.classList.remove('tourhl')); const old = $('tour'); if (old) old.remove();
   if (TOUR == null) return;
-  const tg = $(TOURT[TOUR]); if (tg) { tg.classList.add('tourhl'); tg.scrollIntoView({ block: 'center', behavior: S.a.rm ? 'auto' : 'smooth' }) }
+  const tg = $(TOURT[TOUR]); if (tg) { tg.classList.add('tourhl'); tg.scrollIntoView({ block: 'center', behavior: S.a.rm || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }
   const txt = T('tr' + (TOUR + 1)) + (TOUR === 2 && su().role !== 's' ? ' ' + T('tr3P') : ''), last = TOUR === 2;
-  const el = document.createElement('div'); el.id = 'tour'; el.className = 'tour'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'false'); el.setAttribute('aria-labelledby', 'tourt');
+  const el = document.createElement('div'); el.id = 'tour'; el.className = 'tour'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'tourt');
   el.innerHTML = `<img src="${catSrc(S.cat)}" alt="" width="199" height="240"><div><b id="tourt">${esc(T('trN', { n: TOUR + 1 }))} · ${esc(T('trAria'))}</b><p>${esc(txt)}</p><div class="row"><button class="btn" data-a="trnext" id="trnext">${esc(T(last ? 'trDone' : 'trNext'))}</button>${last ? '' : `<button class="btn s" data-a="trskip">${esc(T('trSkip'))}</button>`}</div></div>`;
   document.body.appendChild(el); $('trnext').focus({ preventScroll: true });
 }
@@ -645,6 +645,8 @@ window.addEventListener('hashchange', reroute);
 window.addEventListener('afterprint', () => document.documentElement.classList.remove('pr-one'));
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if ($('sheet')) { document.querySelector('#sheet .catgrid') ? catSheet() : sheet() } else if (TOUR != null) tourEnd(); return }
+  /* R17:導覽開着時,Tab 只在導覽內循環(Esc 關閉);滑鼠仍可直接按頁面 */
+  if (e.key === 'Tab' && TOUR != null && $('tour')) { const f = [...$('tour').querySelectorAll('button')]; if (f.length) { const i = f.indexOf(document.activeElement); e.preventDefault(); f[(i < 0 ? 0 : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length)].focus() } return }
   if (e.key === 'Enter' && e.target.id === 'ntin') { e.preventDefault(); const b = document.querySelector('[data-a="ntpost"]'); if (b) b.click() }
 });
 document.addEventListener('click', e => {
