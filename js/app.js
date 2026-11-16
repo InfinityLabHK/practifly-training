@@ -29,6 +29,14 @@ const ls = { get(k) { try { return localStorage.getItem(k) } catch (e) { return 
 const fresh = () => ({ v: 3, setup: null, a: { fs: 0, hc: 0, rm: 0 }, m: {}, done: {}, cat: null, seed: 0, notes: [], mine: null, tour: 0, seenAt: 0 });
 let S = fresh();
 try { const o = JSON.parse(ls.get(KEY) || 'null'); if (o && o.v === 3) S = Object.assign(fresh(), o) } catch (e) { }
+/* R18:本機資料不完整時自動修正(設定無效就重新設定,其他類型錯誤就重設該項),避免網站永久無法載入 */
+try {
+  const st = S.setup;
+  if (st && !(Array.isArray(st.tr) && st.tr.length && st.tr.every(t => TRK.includes(t)) && GRADES.includes(st.g) && ['s', 'pc', 'p'].includes(st.role))) S.setup = null;
+  for (const k of ['m', 'done', 'a']) if (!S[k] || typeof S[k] !== 'object' || Array.isArray(S[k])) S[k] = fresh()[k];
+  if (!Array.isArray(S.notes)) S.notes = [];
+  if (S.mine && typeof S.mine.t !== 'string') S.mine = null;
+} catch (e) { S = fresh() }
 /* R09:舊版便利貼曾引用同學寫過的句子;打開時刪去引用內容 */
 try { if (Array.isArray(S.notes)) S.notes = S.notes.filter(n => n && n.k).map(n => ({ k: n.k, w: n.w || (n.q ? 1 : 0), at: n.at })) } catch (e) { S.notes = [] }
 const save = () => ls.set(KEY, JSON.stringify(S));
@@ -733,6 +741,6 @@ SEEN0 = S.seenAt || 0; S.seenAt = Date.now(); save();
 /* 機械貓一直在生活:時段轉換時更新首頁(正在輸入時不更新) */
 let LIFE0 = lifeNow();
 setInterval(() => { const k = lifeNow(); if (k === LIFE0) return; LIFE0 = k; const a = document.activeElement; if (X && R.view === 'home' && !R.mod && !$('sheet') && TOUR == null && !(a && /INPUT|TEXTAREA/.test(a.tagName))) render(false) }, 60e3);
-{ const h = parse(); if (h.old) location.replace(CFG.links.legacy + location.hash); else { LANG = pickLang(); ls.set(LKEY, LANG); loadLang(LANG).then(c => { X = c; reroute() }).catch(e => { console.error(e); $('main').textContent = '內容未能載入，請重新整理頁面。' }) } }
+{ const h = parse(); if (h.old) location.replace(CFG.links.legacy + location.hash); else { LANG = pickLang(); ls.set(LKEY, LANG); loadLang(LANG).then(c => { X = c; reroute() }).catch(e => { console.error(e); $('main').innerHTML = '<p>內容未能載入，請重新整理頁面。如果仍然未能載入，可以清除這部裝置上的進度再試。</p><p><button class="btn" id="pfreset">清除這部裝置的進度，重新開始</button></p>'; const r = $('pfreset'); if (r) r.onclick = () => { ls.del(KEY); location.hash = ''; location.reload() } }) } }
 if ('serviceWorker' in navigator && location.protocol === 'https:') { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { }) }) }
 })();
