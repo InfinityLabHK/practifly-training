@@ -28,7 +28,7 @@ ui: {
  t1TodayH: '做 5 题模拟练习（{g}）', t1TodayP: '答错先给提示再试，最后有分层题解。不计时、不排名。', t1Soon: '思维模组即将推出', t1Open: '打开模拟练习',
  nearH: '最近截止日', dToday: '（今天）', dLeft: '（还有 {n} 日）', dlNone: '现阶段没有要赶的截止日',
  dlPrelim: '完成校内初赛评估，最迟', dlRegFinal: '总决赛注册及缴费截止', dlUniReg: '大学组报名、注册及缴费截止', dlFinalT1: '总决赛（香港大学）',
- dlWorks2a: '提交简报作品', dlWorksT3: '提交作品及创作说明', dlShort: '公布入围名单', dlNotice: '应已收到总决赛通知', dlFinal2b: '现场考试（香港大学）',
+ dlWorks2a: '提交简报作品', dlWorksT3: '提交作品及创作说明', dlShort: '公布入围名单', dlNotice: '应已收到总决赛通知', dlFinal2b: '现场考试（香港大学）', dlMakeup: '错过初赛：线上初赛场补考一次', dlVideo: '入围但因病或不可抗力未能出席：提交汇报录影', dlFinalWorks: '总决赛（香港大学）：入围者现场汇报', closedH: '练习阶段已完成', closedP: '你报的赛道已过了作品提交截止或总决赛日期。想重温，可以随时打开培训地图；成绩及其他安排以大会通知为准。',
  progH: '我的进度', progN: '已完成 {n} / {all} 个模组', openMap: '打开培训地图',
  paceH: '每次练习多久（《学生需知》第 4 部分）', paceTip: '漏了几节不要紧，下周再开始；重质不重量，毋须操练。',
  moreH: '更多', nav_day: '比赛日准备', nav_dayS: '带什么、规则、时间', nav_parents: '家长角', nav_parentsS: '可以／不可以做什么', nav_passport: '培训护照', nav_passportS: '完成记录，可截图', nav_setup: '我的设定', nav_setupS: '赛道、年级、身份', nav_teachers: '给老师及校长',

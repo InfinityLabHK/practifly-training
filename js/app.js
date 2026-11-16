@@ -52,7 +52,7 @@ function loadLang(l) {
 function T(k, v) { let s = X.ui[k]; if (s == null) return k; if (v) s = s.replace(/\{(\w+)\}/g, (m, x) => v[x] != null ? v[x] : m); return s }
 
 /* ---------- 日期(由 config.js 讀取) ---------- */
-const todayHK = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+const todayHK = () => new Date(nowD().getTime() + 8 * 3600e3).toISOString().slice(0, 10);   // 測試時 ?now 亦適用(R11)
 function fmtD(iso) {
   const [y, m, d] = iso.split('-').map(Number), wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay(), l = CL();
   if (l === 'en') return d + ' ' + 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')[m - 1] + (y !== 2026 ? ' ' + y : '') + ' (' + 'Sun Mon Tue Wed Thu Fri Sat'.split(' ')[wd] + ')';
@@ -209,7 +209,7 @@ const mod = (trk, id) => X[trk].mods.find(m => m.id === id);
 const mkey = (trk, id) => trk + '.' + id;
 function mst(trk, id) { const k = mkey(trk, id); return S.m[k] || (S.m[k] = { step: 0, d: {} }) }
 const isDone = (trk, id) => !!S.done[mkey(trk, id)];
-function nextMod(trk) { return mods(trk).find(m => !m.opt && !isDone(trk, m.id)) || null }   // 可選模組(例如 2B 計時練習)不自動推薦
+function nextMod(trk) { return mods(trk).find(m => !m.opt && !isDone(trk, m.id) && !(S.setup && m.for && m.for.filter(has).every(closed))) || null }   // 可選模組(例如 2B 計時練習)不自動推薦
 function progress(trk) { const a = mods(trk).filter(m => !m.opt); return { n: a.filter(m => isDone(trk, m.id)).length, all: a.length } }
 function blocks(bs, out) { out = out || []; bs.forEach(b => { if (b[0] === 'if') { if (cond(b[1])) blocks(b[2], out) } else out.push(b) }); return out }
 
@@ -378,18 +378,21 @@ const myTrks = () => [...new Set(su().tr.map(trkOf))];
 /* 每項報名對應的下一個截止日 */
 function deadlines() {
   const U = su().g === 'U', out = [], add = (t, k, lab) => { const e = CFG.dates[k]; if (e && daysTo(e.d2 || e.d) >= 0) out.push({ t, k, lab, d: e.d2 || e.d }) };
-  if (has('t1')) { if (U) add('t1', 'uniReg', 'dlUniReg'); else if (su().city) add('t1', 'regFinal', 'dlRegFinal'); else add('t1', 't1PrelimLast', 'dlPrelim'); add('t1', 'final', 'dlFinalT1') }
-  if (has('2a')) { add('2a', U ? 'uniWorksDue' : 'worksDue', 'dlWorks2a'); add('2a', 'regFinal', 'dlRegFinal'); add('2a', 'shortlist', 'dlShort') }
-  if (has('t3')) { add('t3', U ? 'uniWorksDue' : 'worksDue', 'dlWorksT3'); add('t3', 'regFinal', 'dlRegFinal'); add('t3', 'shortlist', 'dlShort') }
-  if (has('2b')) { add('2b', 'noticeBy', 'dlNotice'); add('2b', 'final', 'dlFinal2b') }
+  /* R11:補上補考、錄影、總決賽;大學組 2A／賽道三不列 12/11 註冊截止(第 14 章:報名、註冊及繳費同於 12/4 截止) */
+  if (has('t1')) { if (U) add('t1', 'uniReg', 'dlUniReg'); else if (su().city) add('t1', 'regFinal', 'dlRegFinal'); else { add('t1', 't1PrelimLast', 'dlPrelim'); add('t1', 't1Makeup', 'dlMakeup') } add('t1', 'final', 'dlFinalT1') }
+  ['2a', 't3'].forEach(t => { if (!has(t)) return; add(t, U ? 'uniWorksDue' : 'worksDue', t === '2a' ? 'dlWorks2a' : 'dlWorksT3'); if (!U) add(t, 'regFinal', 'dlRegFinal'); add(t, 'shortlist', 'dlShort'); add(t, 'video', 'dlVideo'); add(t, 'final', 'dlFinalWorks') });
+  if (has('2b')) { if (U) add('2b', 'uniReg', 'dlUniReg'); add('2b', 'noticeBy', 'dlNotice'); add('2b', 'final', 'dlFinal2b') }
   return out.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0);
 }
 const firstDl = t => deadlines().find(x => x.t === t);
+/* R11:作品截止(2A／賽道三)或總決賽(賽道一、2B)過後,不再推薦準備模組 */
+function closed(t) { const U = su().g === 'U', k = t === '2a' || t === 't3' ? (U ? 'uniWorksDue' : 'worksDue') : 'final'; return daysTo(CFG.dates[k].d) < 0 }
+const openTr = () => su().tr.filter(t => !closed(t));
 function legT1Done() { const g = su().g, a = ((legacy().t1 || {}).a || {})[g + '-a'] || []; return a.filter(x => x != null).length >= 5 }
 /* 今天做一件事:最近截止的賽道裏,下一個未完成的模組 */
 function todayItem() {
   const c = [];
-  su().tr.forEach(t => {
+  openTr().forEach(t => {
     const trk = trkOf(t), dl = firstDl(t), d = dl ? dl.d : '9999';
     if (trk === 't1') { if (!legT1Done()) c.push({ d, trk, t1: true }) }
     else { const m = nextMod(trk); if (m && !c.some(x => x.trk === trk)) c.push({ d, trk, m }) }
@@ -420,6 +423,8 @@ function vHome() {
   if (sleep) {
     const go = it ? it.trk : myTrks()[0];
     body = `<h2>${esc(T('lfSleepH'))}</h2><p class="say">${esc(T('lf_sleep'))}</p><a class="lnk on" href="${href(go)}">${esc(T('lfSleepGo'))} →</a>`;
+  } else if (!it && !openTr().length) {
+    body = `<h2>${esc(T('closedH'))}</h2><p class="say">${esc(T('closedP'))}</p><a class="lnk on" href="${href(myTrks()[0])}">${esc(T('openMap'))} →</a>`;
   } else if (!it) {
     body = `<h2>${esc(T('allDoneH'))}</h2><p class="say">${esc(T(onlyT1 ? 't1DoneP' : 'allDoneP'))}</p>${onlyT1 ? `<button class="btn" data-a="leg" data-h="t1-${s.g.toLowerCase()}">${esc(T('t1Again'))} →</button>` : ''}`;
   } else if (it.t1) {
@@ -435,7 +440,7 @@ function vHome() {
     <p class="tstate say"><b>${esc(T('lfNow', { n: catN(S.cat), s: T('ls_' + k) }))}</b>${k === 'sleep' ? '' : '「' + esc(T('lf_' + k)) + '」'}${aw ? `<br><small>${esc(aw)}</small>` : ''}</p>
     ${body}<div class="tlife" aria-hidden="true"><img class="tcat me" src="${catSrc(S.cat)}" alt="" width="199" height="240">${PROP[k] || ''}</div></section>`;
   /* 這一週:每條賽道下一件事,按截止日排列(只用設定檔已有的日期) */
-  const wk = su().tr.map(t => { const trk = trkOf(t), dl = firstDl(t); if (trk === 't1') return legT1Done() ? null : { t, x: T('t1TodayH', { g: X.ui.grades[s.g] }), dl }; const m = nextMod(trk); return m ? { t, x: m.t, dl, h: href(trk, m.id) } : null })
+  const wk = openTr().map(t => { const trk = trkOf(t), dl = firstDl(t); if (trk === 't1') return legT1Done() ? null : { t, x: T('t1TodayH', { g: X.ui.grades[s.g] }), dl }; const m = nextMod(trk); return m ? { t, x: m.t, dl, h: href(trk, m.id) } : null })
     .filter(Boolean).filter((x, i, A) => A.findIndex(y => y.x === x.x) === i).sort((a, b) => (a.dl ? a.dl.d : '9') < (b.dl ? b.dl.d : '9') ? -1 : 1).slice(0, 3);
   const week = wk.length >= 2 ? `<section class="card week"><h2>${esc(T('weekH'))}</h2><ol class="ul">${wk.map(w => `<li><b>${esc(X.ui['c_' + w.t])}</b>：${w.h ? `<a href="${w.h}">${esc(w.x)}</a>` : esc(w.x)}${w.dl ? `<br><small>${esc(T(w.dl.lab))} ${dateHTML(w.dl.k)}</small>` : ''}</li>`).join('')}</ol></section>` : '';
   /* 我的路線:每條賽道一排小印 */
