@@ -44,7 +44,7 @@ a{color:var(--pf)}
 :root[data-hc] .bar{background:#000}
 .bar .in{display:flex;align-items:center;gap:8px}
 .bar .tt{flex:1;min-width:0;color:var(--onsky)}
-.bar .tt small{display:block;font:800 .68rem/1.3 var(--f);letter-spacing:.08em;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .tt small{display:block;font:800 .68rem/1.3 var(--f);letter-spacing:.08em;color:var(--cyan);white-space:normal;overflow-wrap:anywhere}
 .bar .tt b{display:block;font:900 1rem/1.25 var(--f);white-space:normal;overflow-wrap:anywhere}
 .ib{flex:none;min-width:44px;min-height:44px;border-radius:12px;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:var(--onsky);font:800 .85rem/1.1 var(--f);padding:6px 10px;display:inline-grid;place-items:center;text-decoration:none}
 .lang{display:flex;flex:none;border:1.5px solid rgba(255,255,255,.4);border-radius:12px;padding:2px;gap:2px}
@@ -285,3 +285,6 @@ ul.ul{margin:.2em 0 .8em;padding-left:1.25em}ul.ul li{margin:.25em 0}
 /* R15(獨立覆核):觸控目標 ≥ 44px——行內連結(a.lnk)改 inline-flex 才吃 min-height;「這一週」連結加高 */
 a.lnk{display:inline-flex;align-items:center;min-width:44px;justify-content:center}
 .week li a{display:inline-flex;align-items:center;min-height:44px}
+/* R19(獨立覆核):頁頂小字不截斷——可換行;窄屏(≤360px)收起小字、收窄間距,讓 44px 語言鍵及標題放得下 */
+@media (max-width:360px){.bar .tt small{display:none}.bar .in{gap:5px}header.bar.gut{padding-left:8px;padding-right:8px}.lang{gap:0;padding:1px}}
+.bar .tt small .nw{white-space:nowrap}

@@ -600,7 +600,7 @@ function render(focusKey) {
   const v = R.view; sayStop(); if (!R.mod) tmStop();
   document.documentElement.lang = HL[CL()];
   document.title = title() + ' · ' + T('site');
-  $('ev').textContent = T('event'); $('ttl').textContent = headTitle(); $('skip').textContent = T('skip');
+  $('ev').innerHTML = T('event').split(' · ').map(x => `<span class="nw">${esc(x)}</span>`).join(' · '); $('ttl').textContent = headTitle(); $('skip').textContent = T('skip');
   document.querySelectorAll('[data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
   $('lang').setAttribute('aria-label', T('langAria')); $('disp').setAttribute('aria-label', T('dispH')); $('disp').title = T('dispH');
   const up = R.mod ? href(v) : href('home'), bk = $('back');
