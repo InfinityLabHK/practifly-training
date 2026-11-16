@@ -48,7 +48,7 @@ a{color:var(--pf)}
 .bar .tt b{display:block;font:900 1rem/1.25 var(--f);white-space:normal;overflow-wrap:anywhere}
 .ib{flex:none;min-width:44px;min-height:44px;border-radius:12px;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:var(--onsky);font:800 .85rem/1.1 var(--f);padding:6px 10px;display:inline-grid;place-items:center;text-decoration:none}
 .lang{display:flex;flex:none;border:1.5px solid rgba(255,255,255,.4);border-radius:12px;padding:2px;gap:2px}
-.lang button{border:0;background:none;color:var(--onsky2);border-radius:9px;min-width:40px;min-height:40px;font:900 .82rem/1 var(--f)}
+.lang button{border:0;background:none;color:var(--onsky2);border-radius:9px;min-width:44px;min-height:44px;font:900 .82rem/1 var(--f)}
 .lang button[aria-pressed="true"]{background:var(--cyan);color:#0B0D33}
 main.win{background:var(--win);border-radius:22px;margin-top:14px;margin-bottom:14px;padding:18px 16px 22px;border:2px solid rgba(176,108,255,.55);min-height:60vh}
 main.win:focus{outline:none}
@@ -281,3 +281,7 @@ ul.ul{margin:.2em 0 .8em;padding-left:1.25em}ul.ul li{margin:.25em 0}
 /* 列印:一般頁面照常列印;按「列印這一頁」時(html.pr-one)只印校長一頁紙 */
 @media print{html,body{background:#fff!important;min-height:0}.bar,.ft,.nextbar,.noprint,.tour,.toast,.tts,.sheet{display:none!important}main.win{border:0;box-shadow:none}
  html.pr-one #main>*:not(#one){display:none!important}html.pr-one #one{border:0;box-shadow:none;margin:0}}
+
+/* R15(獨立覆核):觸控目標 ≥ 44px——行內連結(a.lnk)改 inline-flex 才吃 min-height;「這一週」連結加高 */
+a.lnk{display:inline-flex;align-items:center;min-width:44px;justify-content:center}
+.week li a{display:inline-flex;align-items:center;min-height:44px}
