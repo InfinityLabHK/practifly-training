@@ -518,6 +518,8 @@ function vMod(trk, id) {
    <div class="nextbar"><span class="g" id="gate" role="status">${ms.step ? `<button class="lnk" data-a="mprev">← ${esc(T('prev'))}</button> ` : ''}${esc(g)}</span><button class="btn" data-a="mnext" data-fk="mnext" ${g ? 'aria-disabled="true"' : ''}>${esc(ms.step < n - 1 ? T('next') : T('finish'))} →</button></div>`;
 }
 /* 給老師及校長:校長一頁紙、課程對應(只引用章程 12.1、13.1 及附錄一)、模組清單、課堂工具、列印檔 */
+/* 網站網址(給一頁紙及轉發文字;按目前打開的網址顯示,綁定正式網址後自動正確) */
+const siteUrl = () => location.origin + location.pathname.replace(/index\.html$/, '');
 function vTeachers() {
   const P = X.teach, f = (CL() === 'sc' ? 'sc' : 'tc');
   const rows = trk => X[trk].mods.map(m => `<tr><td>${esc(m.t)}</td><td>${esc(m.tag)}</td><td>${esc(T('mins', { n: m.mins }))}</td><td>${fx(m.aim)}</td></tr>`).join('');
@@ -525,7 +527,7 @@ function vTeachers() {
   return `<span class="eb">${esc(T('teachEb'))}</span><h1>${esc(P.h)}</h1><p class="lead say">${fx(P.p)}</p>
    <section class="card one" id="one"><div class="row sb"><h2>${esc(P.oneH)}</h2><button class="btn s noprint" data-a="print">${esc(P.printBtn)}</button></div>
     ${P.one.map(x => `<h3>${esc(x[0])}</h3><p class="say">${fx(x[1])}</p>`).join('')}
-    <h3>${esc(P.fwdH)}</h3><blockquote class="fwd say">${esc(P.fwd)}</blockquote><p class="fine">${esc(T('disc'))}</p></section>
+    <h3>${esc(P.fwdH)}</h3><blockquote class="fwd say">${esc(P.fwd)}<br>${esc(T('siteUrl'))}${esc(siteUrl())}</blockquote><p class="fine">${esc(T('disc'))}</p></section>
    <h2>${esc(P.curH)}</h2><p class="fine">${esc(P.curP)}</p>${P.cur.map(c => `<div class="card soft"><b>${esc(c[0])}</b><ul class="ul">${c[1].map(x => `<li class="say">${fx(x)}</li>`).join('')}</ul></div>`).join('')}
    <h2>${esc(P.modsH)}</h2><p class="fine">${esc(P.modsP)}</p><h3>${esc(X.t1.name)}</h3><p class="fine">${esc(P.t1Mods)}</p>${tbl('t2')}${tbl('t3')}
    <h2>${esc(P.toolsH)}</h2><div class="choices">${P.tools.map(x => `<button class="opt" data-a="leg" data-h="${esc(x[2])}"><span>${esc(x[0])}<small>${esc(x[1])}</small></span></button>`).join('')}</div>
@@ -609,6 +611,7 @@ function setLang(l, fromHash) {
   loadLang(l).then(c => { X = c; if (!fromHash) { history.replaceState(null, '', href(R.view, R.mod)) } const h = parse(); R = { view: h.view, mod: h.mod, g: h.g }; lastRoute = ''; render() });
 }
 window.addEventListener('hashchange', reroute);
+window.addEventListener('afterprint', () => document.documentElement.classList.remove('pr-one'));
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if ($('sheet')) { document.querySelector('#sheet .catgrid') ? catSheet() : sheet() } else if (TOUR != null) tourEnd(); return }
   if (e.key === 'Enter' && e.target.id === 'ntin') { e.preventDefault(); const b = document.querySelector('[data-a="ntpost"]'); if (b) b.click() }
@@ -632,7 +635,7 @@ document.addEventListener('click', e => {
   if (d.a === 'tour') { S.tour = 0; save(); W = null; TOUR = null; location.hash = '#' + LANG; return }
   if (d.a === 'trnext') { if (TOUR >= 2) tourEnd(); else { TOUR++; tourPaint() } return }
   if (d.a === 'trskip') { tourEnd(); return }
-  if (d.a === 'print') { window.print(); return }
+  if (d.a === 'print') { document.documentElement.classList.add('pr-one'); window.print(); return }
   if (d.a === 'tts') { sayPage(); return }
   /* 設定 */
   if (d.a === 'sutr') { const i = W.tr.indexOf(d.t); i < 0 ? W.tr.push(d.t) : W.tr.splice(i, 1); W.tr.sort((a, b) => TRK.indexOf(a) - TRK.indexOf(b)); if (!W.tr.includes('t1')) W.city = false; render(fk); return }

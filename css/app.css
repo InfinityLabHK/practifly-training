@@ -278,5 +278,6 @@ ul.ul{margin:.2em 0 .8em;padding-left:1.25em}ul.ul li{margin:.25em 0}
 .tbl th,.tbl td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
 .tbl th{background:var(--card2);font-weight:900}
 .pdfs{list-style:none;padding-left:0}.pdfs a{display:flex;align-items:center;min-height:44px;padding:4px 0}
-@media print{body{background:#fff}.bar,.ft,.nextbar,.noprint,.tour,.toast{display:none!important}
- body *{visibility:hidden}#one,#one *{visibility:visible}#one{position:absolute;left:0;top:0;width:100%;border:0;box-shadow:none}}
+/* 列印:一般頁面照常列印;按「列印這一頁」時(html.pr-one)只印校長一頁紙 */
+@media print{html,body{background:#fff!important;min-height:0}.bar,.ft,.nextbar,.noprint,.tour,.toast,.tts,.sheet{display:none!important}main.win{border:0;box-shadow:none}
+ html.pr-one #main>*:not(#one){display:none!important}html.pr-one #one{border:0;box-shadow:none;margin:0}}
