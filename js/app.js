@@ -101,6 +101,12 @@ function cond(c) {
   });
 }
 const showPar = () => cond('p13|par');
+/* 每次練習多久:按賽道及年級顯示《學生需知》第 4 部分原句(R08) */
+function paceHTML(trks) {
+  const g = su().g, grp = !g || g === 'U' ? null : g[0] === 'P' ? (+g[1] <= 3 ? 'p13' : 'p46') : (+g[1] <= 3 ? 's13' : 's46');
+  const L = S.setup && grp ? trks.filter(t => X.paceBy[t]).map(t => `<li>${esc(trkName(t))}（${esc(X.ui.grades[g])}）：${esc(X.paceBy[t][grp])}</li>`) : [];
+  return `<div class="fine say pace">${L.length ? `<b>${esc(T('paceH'))}</b><ul class="ul">${L.join('')}</ul>` : ''}<p>${esc(T('paceTip'))}</p></div>`;
+}
 
 /* ---------- 機械貓夥伴、本機廣場及「數字生命」(最小版) ----------
    每位同學有一隻機械貓夥伴(隨機配對,可更換);每完成一個模組,廣場多一位機械貓同學。
@@ -439,7 +445,7 @@ function vHome() {
    ${plaza()}
    ${notesBoard()}
    <p class="tags"><span class="tag">${esc(X.ui.grades[s.g])}</span>${s.tr.map(t => `<span class="tag ${trkOf(t)}">${esc(X.ui['c_' + t])}</span>`).join('')}${s.city ? `<span class="tag">${esc(T('cityTag'))}</span>` : ''}<a class="lnk" href="${href('setup')}">${esc(T('change'))}</a></p>
-   <p class="fine say">${esc(T('pace'))}</p>
+   ${paceHTML(myTrks())}
    <nav class="nav2" aria-label="${esc(T('moreH'))}"><a href="${href('setup')}">${esc(T('nav_setup'))}<small>${esc(T('nav_setupS'))}</small></a><a href="${href('teachers')}">${esc(T('nav_teachers'))}<small>${esc(T('teachEb'))}</small></a></nav>
    <div class="card soft"><b>${esc(T('notesH'))}</b><p class="fine">${esc(T('notesP'))}</p>${myTrks().map(notesLink).join('<br>')}</div>`;
 }
@@ -486,7 +492,7 @@ function vMap(trk) {
   const secs = D.secs || [[null, list.map(m => m.id)]];
   let n = 0;
   secs.forEach(sec => { const ms = list.filter(m => sec[1].includes(m.id)); if (!ms.length) return; if (sec[0]) h += `<h2>${esc(sec[0])}</h2>`; h += `<ol class="map">${ms.map(m => item(m, m.opt ? n : n++)).join('')}</ol>` });
-  h += `<p class="fine say">${esc(T('pace'))}</p><p>${notesLink(trk)}</p>`;
+  h += `${paceHTML([trk])}<p>${notesLink(trk)}</p>`;
   return h;
 }
 function vT1() {
@@ -495,6 +501,7 @@ function vT1() {
    ${S.setup && has('t1') ? `<p class="dl say">${dlLine('t1')}</p>` : ''}${su().city ? `<div class="okbox say">${fx(T('cityNote'))}</div>` : ''}
    <div class="okbox say">${fx(X.t1.soon)}</div>
    <button class="btn w" data-a="leg" data-h="t1${g ? '-' + g.toLowerCase() : ''}">${esc(g ? T('t1TodayH', { g: X.ui.grades[g] }) : T('t1Open'))} →</button>
+   ${paceHTML(['t1'])}
    <div class="card soft say"><b>${esc(X.t1.rulesH)}</b><ul class="ul">${X.t1.rules.map(x => `<li>${fx(x)}</li>`).join('')}</ul></div>
    <p>${notesLink('t1')}</p>`;
 }
