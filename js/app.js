@@ -212,12 +212,15 @@ function notesLink(t) {
 }
 /* 初小版:每步只顯示主要內容及互動;「評審看甚麼」及較長的說明收入「給家長讀」 */
 const INTER = new Set(['mcq', 'cls', 'pick', 'sort', 'prompt', 'write', 'check', 'sb', 'timer', 'flip', 'go', 'leg', 'date']);
+/* 內容塊類型後加「!」(例如 'box!')= 初小必看:初小版不收起(底線清單、可以/不可以、小測會引用的句子) */
+const btype = b => String(b[0]).replace(/!$/, '');
 function stepHTML(bs, d) {
-  const L = blocks(bs), H = b => BL[b[0]] ? BL[b[0]](b, d) : '';
+  const L = blocks(bs), H = b => BL[btype(b)] ? BL[btype(b)](b, d) : '';
   if (stage() !== 'p12') return L.map(H).join('');
   let vis = '', fold = '', judge = '';
   L.forEach((b, i) => {
     const h = H(b); if (!h) return;
+    if (/!$/.test(b[0])) { vis += h; return }
     if (b[0] === 'box' && b[1] === X.ui.judgeBox) { judge += h; return }
     const nx = L[i + 1], keep = INTER.has(b[0]) || ['tip', 'warn', 'ok', 'par'].includes(b[0]) || (b[0] === 'box' && /^題目|^题目/.test(b[1]))
       || ((b[0] === 'p' || b[0] === 'h') && (i === 0 || (nx && INTER.has(nx[0]))));
