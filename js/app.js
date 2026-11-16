@@ -124,11 +124,14 @@ function friends() {
   return o.slice(0, Math.min(Object.keys(S.done).length, o.length));
 }
 /* 機械貓的一天:平日 起床 / 上學 / 廣場 / 晚飯 / 做功課 / 睡覺;週六野餐、週日踢波,週末晚上看星星 */
+/* 公眾假期(config.js;簡體用內地清單):日間不上學 */
+const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const isHol = d => { const H = CFG.holidays || {}; return ((LANG === 'sc' ? H.cn : H.hk) || []).includes(ymd(d)) };
 function lifeAt(d) {
   const day = d.getDay(), we = day === 0 || day === 6, m = d.getHours() * 60 + d.getMinutes();
   if (m < 420 || m >= 1290) return 'sleep';                         // 21:30–07:00
   if (m < 510) return 'wake';                                       // 07:00–08:30
-  if (m < 930) return we ? (day === 6 ? 'picnic' : 'ball') : 'school'; // 08:30–15:30
+  if (m < 930) return we ? (day === 6 ? 'picnic' : 'ball') : isHol(d) ? 'hol' : 'school'; // 08:30–15:30(公眾假期:放假)
   if (m < 1110) return 'plaza';                                     // 15:30–18:30
   if (m < 1170) return 'dinner';                                    // 18:30–19:30
   return we ? 'free' : 'homework';                                  // 19:30–21:30
@@ -154,11 +157,12 @@ const PROP = {
   ball: '<svg class="prop bounce" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="14" fill="#fff" stroke="#1F1A2B" stroke-width="2"/><path d="M20 13l6 4-2 7h-8l-2-7z" fill="#1F1A2B"/></svg>',
   free: '<svg class="prop twinkle" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4l4 10 10 1-8 7 3 10-9-6-9 6 3-10-8-7 10-1z" fill="#FFD24A"/></svg>'
 };
+PROP.hol = PROP.picnic;
 const FPROP = { book: PROP.plaza, ball: PROP.ball, note: '<span class="mus" aria-hidden="true">♪</span>', bag: PROP.school, zz: PROP.sleep, walk: '' };
 /* 機械貓「現在正在做甚麼」的畫面 */
-function scene(k, big) {
+function scene(k, big, line) {
   ensureCat(); if (!S.cat) return '';
-  return `<div class="scene s-${k}${big ? ' big' : ''}" role="img" aria-label="${esc(T('lfNow', { n: catN(S.cat), s: T('ls_' + k) }))}"><div class="pbub say">${esc(T('lf_' + k))}</div><img class="me" id="meimg" src="${catSrc(S.cat)}" alt="" width="199" height="240">${PROP[k] || ''}</div>`;
+  return `<div class="scene s-${k}${big ? ' big' : ''}" role="img" aria-label="${esc(T('lfNow', { n: catN(S.cat), s: T('ls_' + k) }))}"><div class="pbub say">${esc(line || T('lf_' + k))}</div><img class="me" id="meimg" src="${catSrc(S.cat)}" alt="" width="199" height="240">${PROP[k] || ''}</div>`;
 }
 const PPOS = [[17, 31], [83, 31], [30, 20], [70, 20], [9, 14], [91, 14], [22, 4], [78, 4], [38, 3], [62, 3]];
 function plaza() {
@@ -399,7 +403,8 @@ function syncLegacy() { if (!S.setup || !has('t1')) return; const k = t1Key(); i
 /* 第一頁:機械貓正在做的事、一句歡迎、開始按鈕、老師／校長入口 */
 function vWelcome() {
   ensureCat(); save(); const k = lifeNow();
-  return `<section class="wel">${scene(k, true)}</section>
+  /* 未設定的新用戶晚上第一次打開:不叫他去睡,用中性句(R10) */
+  return `<section class="wel">${scene(k, true, k === 'sleep' ? T('lf_sleep0') : '')}</section>
    <h1 class="say">${esc(T('wlH'))}</h1><p class="lead say">${esc(T('wlP'))}</p>
    <a class="btn w" href="${href('setup')}" data-fk="wlstart">${esc(T('wlStart'))} →</a>
    <p class="fine wlf">${esc(T('wlFine'))}</p>
@@ -408,7 +413,8 @@ function vWelcome() {
 function vHome() {
   if (!S.setup) return vWelcome();
   syncLegacy();
-  const s = su(), it = todayItem(), dls = deadlines(), near = dls[0], k = lifeNow(), sleep = k === 'sleep';
+  /* 家長自己先看:家長多數晚上才看,睡覺時段仍顯示今天的一件事(R10) */
+  const s = su(), it = todayItem(), dls = deadlines(), near = dls[0], k = lifeNow(), sleep = k === 'sleep' && s.role !== 'p';
   const onlyT1 = myTrks().length === 1 && has('t1');
   let eb = esc(T('todayEb')), body;
   if (sleep) {
@@ -426,7 +432,7 @@ function vHome() {
   ensureCat(); save();
   const aw = awayLine();
   const today = `<section class="today hascat s-${k}" id="tour-today"><span class="eb">${eb}</span>
-    <p class="tstate say"><b>${esc(T('lfNow', { n: catN(S.cat), s: T('ls_' + k) }))}</b>${sleep ? '' : '「' + esc(T('lf_' + k)) + '」'}${aw ? `<br><small>${esc(aw)}</small>` : ''}</p>
+    <p class="tstate say"><b>${esc(T('lfNow', { n: catN(S.cat), s: T('ls_' + k) }))}</b>${k === 'sleep' ? '' : '「' + esc(T('lf_' + k)) + '」'}${aw ? `<br><small>${esc(aw)}</small>` : ''}</p>
     ${body}<div class="tlife" aria-hidden="true"><img class="tcat me" src="${catSrc(S.cat)}" alt="" width="199" height="240">${PROP[k] || ''}</div></section>`;
   /* 這一週:每條賽道下一件事,按截止日排列(只用設定檔已有的日期) */
   const wk = su().tr.map(t => { const trk = trkOf(t), dl = firstDl(t); if (trk === 't1') return legT1Done() ? null : { t, x: T('t1TodayH', { g: X.ui.grades[s.g] }), dl }; const m = nextMod(trk); return m ? { t, x: m.t, dl, h: href(trk, m.id) } : null })

@@ -54,7 +54,7 @@ ui: {
  contact: '已報名同學及家長查詢：{mail}（請寫明同學姓名、統一編號 {id}、賽道及問題；切勿附上密碼）',
  notReg: '未報名？',
  wlH: '你好！我是你的機械貓夥伴。', wlP: '我會陪你準備總決賽。每天做一件事就夠。', wlFine: '給已報名的同學及家長 · 不用帳號 · 進度不上傳', wlStart: '開始（約 30 秒設定）', wlTeach: '我是老師／校長', ttlWelcome: '歡迎', ttlSetup: '設定',
- ls_wake: '起床、伸懶腰', ls_school: '上學中', ls_plaza: '在廣場看書', ls_dinner: '吃晚飯', ls_homework: '做功課時間', ls_sleep: '睡覺中', ls_picnic: '在草地野餐', ls_ball: '在廣場踢波', ls_free: '看星星',
+ ls_wake: '起床、伸懶腰', ls_school: '上學中', ls_plaza: '在廣場看書', ls_dinner: '吃晚飯', ls_homework: '做功課時間', ls_sleep: '睡覺中', ls_picnic: '在草地野餐', ls_ball: '在廣場踢波', ls_free: '看星星', ls_hol: '放假，在草地野餐', lf_hol: '今天是公眾假期，我在草地野餐。', lp_hol: '放假野餐', lf_sleep0: '我準備睡覺了。你可以先看看這裏有甚麼，想開始就按下面的按鈕。',
  lf_wake: '早晨！我剛醒，正在伸懶腰。', lf_school: '我也在上課，放學見。', lf_plaza: '我在廣場看書。你想一起做一件事嗎？', lf_dinner: '我在吃晚飯。吃飽了再來也可以。', lf_homework: '這段時間最適合做今天的一件事。', lf_sleep: '我睡了。你也早點休息，明天再做。', lf_picnic: '週末了，我在草地野餐。', lf_ball: '週末了，我在廣場踢波。', lf_free: '週末晚上，我在看星星。想做一件事也可以。',
  lp_wake: '起了床', lp_school: '上了課', lp_plaza: '在廣場看了書', lp_dinner: '吃了晚飯', lp_homework: '溫了書', lp_sleep: '睡了一覺', lp_picnic: '去了野餐', lp_ball: '踢了波', lp_free: '看了星星',
  lfAway: '你上次來之後，我{s}。', lfAnd: '、', lfSleepH: '機械貓睡了', lfSleepGo: '仍然想做？打開培訓地圖', lfNow: '{n} 現在：{s}',
