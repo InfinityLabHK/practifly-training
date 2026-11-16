@@ -1,5 +1,7 @@
 /* Practifly AI 三賽道自學培訓網站 v3.0(2026-11-16)
-   定位:服務已報名的參加者及家長;個人報名的同學用這個網站代替校內培訓自學。
+   定位:服務已報名的參加者及家長,在家按自己的賽道和年級自學;校內培訓及正式評估以章程及大會通知為準。
+   v3.0 最終優化(2026-11-16):第一頁機械貓歡迎、四步設定、機械貓「數字生命」最小版(本機時鐘 + 預寫狀態表,不接 AI)、
+   便利貼(只存本機)、三步新手導覽、首頁重排、【待確認】只在審閱模式(?review)顯示。
    紅線:不接任何 LLM、不收集或上傳資料、不用帳號;進度只存本機 localStorage(try/catch);保留「清除進度」。
    只用已批示範題及現有模擬題;不自行新增比賽題目、數字、日期、金額、名額、獎項或服務。
    所有日期、連結、聯絡方法由 config.js 讀取;文字內容在 js/c-<語言>.js(繁體為正本,簡體由 tools/make_sc.py 產生)。
@@ -8,17 +10,23 @@
 'use strict';
 const CFG = window.PF_CONFIG;
 const LANGS = ['tc', 'sc', 'en'], HL = { tc: 'zh-Hant-HK', sc: 'zh-Hans-CN', en: 'en' }, TTSL = { tc: 'zh-HK', sc: 'zh-CN', en: 'en-US' };
-const HAS = { tc: 1, sc: 1 };            // 已有新內容的語言;EN 於第三次預覽加入,之前先顯示繁體並說明
+const HAS = { tc: 1, sc: 1 };            // 已有新內容的語言;EN 稍後加入,之前先顯示繁體並說明
 const KEY = 'pf-training-v3', LEG = 'pf-track2-demo-v1', LKEY = 'pf-track2-lang', TKEY = 'pf-track2-theme';
 const VIEWS = ['home', 'setup', 't1', 't2', 't3', 'day', 'parents', 'teachers', 'passport'];
 const GRADES = ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'U'];
 const TRK = ['t1', '2a', '2b', 't3'];
 const $ = id => document.getElementById(id);
 const esc = x => String(x == null ? '' : x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* 審閱模式:網址加 ?review 才顯示【待確認】;一般網址不顯示 */
+const REVIEW = (() => { try { if (/(^|[?&])review(=|&|$)/.test(location.search)) { sessionStorage.setItem('pf-review', '1'); return true } return sessionStorage.getItem('pf-review') === '1' } catch (e) { return false } })();
+/* 時鐘:測試時可用 ?now=2026-11-17T16:00 注入本地時間;一般使用裝置的本地時間 */
+function nowD() { try { const q = new URLSearchParams(location.search).get('now'); if (q) { const d = new Date(q); if (!isNaN(d)) return d } } catch (e) { } return new Date() }
+const BOOT = Date.now();
+const hsh = a => { let h = 2166136261; for (const c of String(a)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) } return h >>> 0 };
 const ls = { get(k) { try { return localStorage.getItem(k) } catch (e) { return null } }, set(k, v) { try { localStorage.setItem(k, v) } catch (e) { } }, del(k) { try { localStorage.removeItem(k) } catch (e) { } } };
 
 /* ---------- 狀態(只存本機) ---------- */
-const fresh = () => ({ v: 3, setup: null, a: { fs: 0, hc: 0, rm: 0 }, m: {}, done: {}, cat: null, seed: 0 });
+const fresh = () => ({ v: 3, setup: null, a: { fs: 0, hc: 0, rm: 0 }, m: {}, done: {}, cat: null, seed: 0, notes: [], mine: null, tour: 0, seenAt: 0 });
 let S = fresh();
 try { const o = JSON.parse(ls.get(KEY) || 'null'); if (o && o.v === 3) S = Object.assign(fresh(), o) } catch (e) { }
 const save = () => ls.set(KEY, JSON.stringify(S));
@@ -49,7 +57,7 @@ function fmtD(iso) {
   return (y !== 2026 ? y + ' 年 ' : '') + m + ' 月 ' + d + ' 日（' + '日一二三四五六'[wd] + '）';
 }
 function fmtShort(iso) { const [, m, d] = iso.split('-').map(Number); return CL() === 'en' ? d + ' ' + 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')[m - 1] : m + ' 月 ' + d + ' 日' }
-const pendTag = () => `<span class="tag pend">${esc(T('pend'))}</span>`;
+const pendTag = () => REVIEW ? `<span class="tag pend">${esc(T('pend'))}</span>` : '';
 function dateHTML(k) {
   const e = CFG.dates[k]; if (!e) return esc(k);
   let h = `<b>${esc(fmtD(e.d))}${e.d2 ? ' – ' + esc(fmtD(e.d2)) : ''}</b>`;
@@ -71,7 +79,7 @@ function parse() {
     lang: tk.find(x => LANGS.includes(x)) || null,
     old: tk.find(x => ['ws', 'tpl', 'preview', 'solo', 'team'].includes(x)) || null,
     view: tk.find(x => VIEWS.includes(x)) || 'home',
-    mod: tk.find(x => /^(m[1-9]|make|talk|exam)$/.test(x)) || null,
+    mod: tk.find(x => /^(m[1-9]|make|talk|exam|timed)$/.test(x)) || null,
     g: (tk.find(x => /^(p[1-6]|s[1-6]|u)$/.test(x)) || '').toUpperCase() || null
   };
 }
@@ -87,16 +95,17 @@ function cond(c) {
   return c.split('|').some(x => {
     const neg = x[0] === '!'; if (neg) x = x.slice(1);
     const g = su().g || 'P4', st = stage(g);
-    const v = x === 'p13' ? /^P[1-3]$/.test(g) : x === 'pri' ? g[0] === 'P' : x === 'sec' ? g[0] === 'S' : x === 'par' ? su().role === 'p' : x === 'city' ? !!su().city
+    const v = x === 'p13' ? /^P[1-3]$/.test(g) : x === 'pri' ? g[0] === 'P' : x === 'sec' ? g[0] === 'S' : x === 'par' ? su().role !== 's' : x === 'city' ? !!su().city
       : x === '2a' || x === '2b' || x === 't1' || x === 't3' ? has(x) : x === 'k12' ? g !== 'U' : x === 'sc' ? CL() === 'sc' : x === st;
     return neg ? !v : v;
   });
 }
 const showPar = () => cond('p13|par');
 
-/* ---------- 機械貓夥伴及本機廣場 ----------
+/* ---------- 機械貓夥伴、本機廣場及「數字生命」(最小版) ----------
    每位同學有一隻機械貓夥伴(隨機配對,可更換);每完成一個模組,廣場多一位機械貓同學。
-   全部只存本機:沒有連線、沒有其他用戶的資料、沒有排名。 */
+   「一直在生活」:按裝置本地時間及預寫狀態表決定牠在做甚麼(不接 AI、不連線);沒有飢餓、生病、懲罰、衰減、打卡獎勵或推送。
+   全部只存本機:沒有其他用戶的資料、沒有排名。 */
 const CATS = window.PF_CATS || [];
 const catN = id => { const c = CATS.find(x => x.id === id); return c ? c.n[CL()] : '' };
 const catSrc = id => 'img/cats/' + id + '.webp';
@@ -106,19 +115,80 @@ function friends() {
   for (let i = o.length - 1; i > 0; i--) { s = (s * 16807) % 2147483647; const j = s % (i + 1);[o[i], o[j]] = [o[j], o[i]] }
   return o.slice(0, Math.min(Object.keys(S.done).length, o.length));
 }
+/* 機械貓的一天:平日 起床 / 上學 / 廣場 / 晚飯 / 做功課 / 睡覺;週六野餐、週日踢波,週末晚上看星星 */
+function lifeAt(d) {
+  const day = d.getDay(), we = day === 0 || day === 6, m = d.getHours() * 60 + d.getMinutes();
+  if (m < 420 || m >= 1290) return 'sleep';                         // 21:30–07:00
+  if (m < 510) return 'wake';                                       // 07:00–08:30
+  if (m < 930) return we ? (day === 6 ? 'picnic' : 'ball') : 'school'; // 08:30–15:30
+  if (m < 1110) return 'plaza';                                     // 15:30–18:30
+  if (m < 1170) return 'dinner';                                    // 18:30–19:30
+  return we ? 'free' : 'homework';                                  // 19:30–21:30
+}
+const lifeNow = () => lifeAt(nowD());
+let SEEN0 = 0;   // 上次打開的時間(本次啟動時讀取)
+function awayLine() {
+  const now = nowD().getTime(); if (!SEEN0 || now - SEEN0 < 90 * 60e3) return '';
+  const cur = lifeAt(new Date(now)), seq = []; let t = Math.max(SEEN0, now - 3 * 864e5);
+  for (; t < now; t += 30 * 60e3) { const k = lifeAt(new Date(t)); if (k !== cur && seq[seq.length - 1] !== k) seq.push(k) }
+  const u = [...new Set(seq.reverse())].slice(0, 3).reverse(); if (!u.length) return '';
+  return T('lfAway', { s: u.map(k => T('lp_' + k)).join(T('lfAnd')) });
+}
+/* 小道具(CSS / SVG,不用生成圖像) */
+const PROP = {
+  sleep: '<span class="zz" aria-hidden="true"><i>z</i><i>Z</i><i>z</i></span>',
+  wake: '<svg class="prop" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="8" fill="#FFC93C"/><g stroke="#FFB000" stroke-width="3" stroke-linecap="round"><path d="M20 3v5M20 32v5M3 20h5M32 20h5M8 8l3.5 3.5M28.5 28.5L32 32M8 32l3.5-3.5M28.5 11.5L32 8"/></g></svg>',
+  school: '<svg class="prop" viewBox="0 0 40 40" aria-hidden="true"><rect x="8" y="12" width="24" height="24" rx="5" fill="#E85D5D"/><rect x="12" y="20" width="16" height="9" rx="2" fill="#FFD7D7"/><path d="M14 12a6 6 0 0112 0" fill="none" stroke="#B83A3A" stroke-width="3"/></svg>',
+  plaza: '<svg class="prop" viewBox="0 0 40 40" aria-hidden="true"><path d="M4 12q8-4 16 0v20q-8-4-16 0z" fill="#5B8DEF"/><path d="M36 12q-8-4-16 0v20q8-4 16 0z" fill="#7FA7F5"/><path d="M8 17h8M8 21h8M24 17h8M24 21h8" stroke="#fff" stroke-width="1.6"/></svg>',
+  dinner: '<svg class="prop" viewBox="0 0 40 40" aria-hidden="true"><path d="M5 20h30a15 13 0 01-30 0z" fill="#F2F2F2" stroke="#9AA3B5" stroke-width="2"/><path d="M14 8q3 3 0 7M20 6q3 3 0 8M26 8q3 3 0 7" fill="none" stroke="#9AA3B5" stroke-width="2" stroke-linecap="round"/></svg>',
+  homework: '<svg class="prop" viewBox="0 0 40 40" aria-hidden="true"><rect x="6" y="8" width="22" height="28" rx="2" fill="#fff" stroke="#9AA3B5" stroke-width="2"/><path d="M10 15h14M10 20h14M10 25h9" stroke="#9AA3B5" stroke-width="2"/><path d="M27 31L36 12l3 1.5-9 19z" fill="#FFC93C"/></svg>',
+  picnic: '<svg class="prop" viewBox="0 0 40 40" aria-hidden="true"><path d="M2 30l8-10h28l-8 10z" fill="#E85D5D"/><path d="M8 25h26M14 20l-6 10M24 20l-6 10" stroke="#fff" stroke-width="2"/><rect x="22" y="9" width="12" height="9" rx="2" fill="#C98B4E"/><path d="M24 9a4 4 0 018 0" fill="none" stroke="#8A5A2B" stroke-width="2"/></svg>',
+  ball: '<svg class="prop bounce" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="14" fill="#fff" stroke="#1F1A2B" stroke-width="2"/><path d="M20 13l6 4-2 7h-8l-2-7z" fill="#1F1A2B"/></svg>',
+  free: '<svg class="prop twinkle" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4l4 10 10 1-8 7 3 10-9-6-9 6 3-10-8-7 10-1z" fill="#FFD24A"/></svg>'
+};
+const FPROP = { book: PROP.plaza, ball: PROP.ball, note: '<span class="mus" aria-hidden="true">♪</span>', bag: PROP.school, zz: PROP.sleep, walk: '' };
+/* 機械貓「現在正在做甚麼」的畫面 */
+function scene(k, big) {
+  ensureCat(); if (!S.cat) return '';
+  return `<div class="scene s-${k}${big ? ' big' : ''}" role="img" aria-label="${esc(T('lfNow', { n: catN(S.cat), s: T('ls_' + k) }))}"><div class="pbub say">${esc(T('lf_' + k))}</div><img class="me" id="meimg" src="${catSrc(S.cat)}" alt="" width="199" height="240">${PROP[k] || ''}</div>`;
+}
 const PPOS = [[17, 31], [83, 31], [30, 20], [70, 20], [9, 14], [91, 14], [22, 4], [78, 4], [38, 3], [62, 3]];
-function plaza(msg) {
-  ensureCat(); if (!S.cat) return ''; const fr = friends(), show = fr.slice(-10);
-  return `<section class="plaza" aria-label="${esc(T('plzH'))}"><div class="pb say">${esc(msg)}</div>${show.map((id, i) => `<img class="fr" src="${catSrc(id)}" alt="${esc(catN(id))}" style="left:${PPOS[i][0]}%;bottom:${PPOS[i][1]}%" width="199" height="240">`).join('')}<img class="me" src="${catSrc(S.cat)}" alt="${esc(T('plzMe', { n: catN(S.cat) }))}" width="199" height="240"><button class="pbtn" data-a="catsheet" id="catbtn">${esc(T('plzChange'))}</button></section>
-   <p class="fine say">${esc(fr.length ? T('plzN', { n: fr.length }) : T('plz0'))}</p>`;
+function plaza() {
+  ensureCat(); if (!S.cat) return ''; const fr = friends(), show = fr.slice(-10), k = lifeNow(), day = nowD().toDateString();
+  /* 廣場同學也有生活:按 seed + 日期決定今天的位置及動作 */
+  const pos = PPOS.slice().sort((a, b) => hsh(S.seed + day + a) - hsh(S.seed + day + b));
+  const acts = ['book', 'ball', 'note', 'walk'];
+  const act = i => k === 'sleep' ? 'zz' : k === 'school' ? 'bag' : acts[hsh(S.seed + '|' + day + '|' + show[i]) % acts.length];
+  const n = fr.length, msg = !n ? T('plz0') : n >= 3 ? T('plzMany', { n }) : T('plzFew', { n });
+  return `<section class="plaza s-${k}" id="tour-plz" aria-label="${esc(T('plzH'))}"><div class="pb say">${esc(msg)}</div>${show.map((id, i) => { const a = act(i); return `<span class="fr a-${a}" style="left:${pos[i][0]}%;bottom:${pos[i][1]}%"><img src="${catSrc(id)}" alt="${esc(catN(id))}" width="199" height="240">${FPROP[a] || ''}</span>` }).join('')}<img class="me" src="${catSrc(S.cat)}" alt="${esc(T('plzMe', { n: catN(S.cat) }))}" width="199" height="240"><button class="pbtn" data-a="catsheet" id="catbtn">${esc(T('plzChange'))}</button></section>
+   <p class="fine say">${esc(T('plzN'))}</p><p class="sr" role="status" id="plzst"></p>`;
 }
 function catSheet() {
-  const old = $('sheet'); if (old) { old.remove(); const b = $('catbtn'); if (b) b.focus(); return }
+  const old = $('sheet'); if (old) { old.remove(); const b = $('catbtn') || $('suall'); if (b) b.focus(); return }
+  const cur = R.view === 'setup' && W ? W.cat : S.cat;
   const el = document.createElement('div'); el.className = 'sheet'; el.id = 'sheet';
   el.innerHTML = `<div class="box" role="dialog" aria-modal="true" aria-label="${esc(T('plzPick'))}"><div class="row sb"><h2>${esc(T('plzPick'))}</h2><button class="btn s" data-a="catsheet" id="shx">${esc(T('close'))}</button></div><p class="fine">${esc(T('plzPickP'))}</p>
-   <div class="catgrid">${CATS.map(c => `<button data-a="catpick" data-c="${c.id}" aria-pressed="${S.cat === c.id}"><img src="${catSrc(c.id)}" alt="" loading="lazy" width="199" height="240">${esc(c.n[CL()])}</button>`).join('')}</div></div>`;
+   <div class="catgrid">${CATS.map(c => `<button data-a="catpick" data-c="${c.id}" aria-pressed="${cur === c.id}"><img src="${catSrc(c.id)}" alt="" loading="lazy" width="199" height="240">${esc(c.n[CL()])}</button>`).join('')}</div></div>`;
   document.body.appendChild(el); $('shx').focus();
 }
+/* 便利貼(不是聊天):完成新模組時機械貓留一張預寫的便利貼;同學可貼一張給牠(≤30 字,只存本機)。牠只用動作回應,不生成回覆。 */
+function addNote(k) {
+  let q = ''; const [trk, id] = k.split('.'); const M = X[trk] && X[trk].mods && mod(trk, id);
+  if (M) { const ms = S.m[k] || { d: {} }; for (const st of M.steps) for (const b of blocks(st.b)) if (b[0] === 'write' && !q) { const v = String(ms.d[b[1]] || '').trim(); if (v) q = v.length > 30 ? v.slice(0, 30) + '…' : v } }
+  S.notes = (S.notes || []).concat([{ k, q, at: Date.now() }]).slice(-12);
+}
+function noteText(n, i) {
+  const [trk, id] = n.k.split('.'), M = X[trk] && X[trk].mods && mod(trk, id), t = M ? M.t : T('ntT1');
+  return n.q ? T('ntC1', { t, q: n.q }) : T(i % 2 ? 'ntC2' : 'ntC0', { t });
+}
+function notesBoard() {
+  const N = (S.notes || []).slice(-3).reverse(), me = S.mine, seen = me && me.at < BOOT;
+  return `<section class="notes" aria-label="${esc(T('ntH'))}"><h2>${esc(T('ntH'))}</h2>
+   ${N.length ? `<div class="ntw">${N.map((n, i) => `<div class="nt say"><img src="${catSrc(S.cat)}" alt="" width="199" height="240">${esc(noteText(n, (S.notes.length - 1 - i)))}</div>`).join('')}</div>` : ''}
+   ${me ? `<div class="nt mine"><b>${esc(T('ntMine'))}</b>「${esc(me.t)}」<span class="seen">${esc(seen ? T('ntSeen') : T('ntNew'))}</span><button class="lnk" data-a="ntdel">${esc(T('ntDel'))}</button></div>`
+      : `<div class="fld ntf"><label for="ntin">${esc(T('ntMineL'))}</label><div class="row"><input type="text" id="ntin" maxlength="30" autocomplete="off" aria-describedby="nth"><button class="btn s" data-a="ntpost">${esc(T('ntPost'))}</button></div><p class="fine" id="nth">${esc(T('ntMineHint'))}</p></div>`}</section>`;
+}
+function nod() { if (S.a.rm) return; document.querySelectorAll('.me').forEach(x => { x.classList.remove('nod'); void x.offsetWidth; x.classList.add('nod') }) }
 
 /* ---------- 模組 ---------- */
 const mods = trk => X[trk].mods.filter(m => !m.for || !S.setup || !(has('2a') || has('2b')) || m.for.some(has));
@@ -126,8 +196,8 @@ const mod = (trk, id) => X[trk].mods.find(m => m.id === id);
 const mkey = (trk, id) => trk + '.' + id;
 function mst(trk, id) { const k = mkey(trk, id); return S.m[k] || (S.m[k] = { step: 0, d: {} }) }
 const isDone = (trk, id) => !!S.done[mkey(trk, id)];
-function nextMod(trk) { return mods(trk).find(m => !isDone(trk, m.id)) || null }
-function progress(trk) { const a = mods(trk); return { n: a.filter(m => isDone(trk, m.id)).length, all: a.length } }
+function nextMod(trk) { return mods(trk).find(m => !m.opt && !isDone(trk, m.id)) || null }   // 可選模組(例如 2B 計時練習)不自動推薦
+function progress(trk) { const a = mods(trk).filter(m => !m.opt); return { n: a.filter(m => isDone(trk, m.id)).length, all: a.length } }
 function blocks(bs, out) { out = out || []; bs.forEach(b => { if (b[0] === 'if') { if (cond(b[1])) blocks(b[2], out) } else out.push(b) }); return out }
 
 let CURM = null;   // 目前模組(賽道二五個準則模組由對應的思維英雄做教練)
@@ -135,6 +205,28 @@ function guide(txt) { const h = CURM && CURM.hero; return `<div class="guide"><i
 const t3sub = () => { const d = (S.m['t3.m1'] || { d: {} }).d.sub; return d === 1 ? 'b' : 'a' };
 const cntOf = (s, unit) => unit === 'w' ? (s.trim() ? s.trim().split(/\s+/).length : 0) : s.replace(/\s/g, '').length;
 
+/* 《學生需知》:PDF(files/,內地可開)為主;claude.ai 網上版設為公開後(config.js notesOnline)才另外顯示 */
+function notesLink(t) {
+  const l = CL() === 'sc' ? 'sc' : 'tc', pdf = CFG.links.notesPdf.replace('{t}', t).replace('{l}', l);
+  return `<a class="lnk" href="${esc(pdf)}" target="_blank" rel="noopener">${esc(T('notes_' + t) + T('notesPdf'))}</a>` + (CFG.links.notesOnline ? ` · <a class="lnk" href="${esc(CFG.links.notes[t])}" target="_blank" rel="noopener">${esc(T('notesOnline'))} ↗</a>` : '');
+}
+/* 初小版:每步只顯示主要內容及互動;「評審看甚麼」及較長的說明收入「給家長讀」 */
+const INTER = new Set(['mcq', 'cls', 'pick', 'sort', 'prompt', 'write', 'check', 'sb', 'timer', 'flip', 'go', 'leg', 'date']);
+function stepHTML(bs, d) {
+  const L = blocks(bs), H = b => BL[b[0]] ? BL[b[0]](b, d) : '';
+  if (stage() !== 'p12') return L.map(H).join('');
+  let vis = '', fold = '', judge = '';
+  L.forEach((b, i) => {
+    const h = H(b); if (!h) return;
+    if (b[0] === 'box' && b[1] === X.ui.judgeBox) { judge += h; return }
+    const nx = L[i + 1], keep = INTER.has(b[0]) || ['tip', 'warn', 'ok', 'par'].includes(b[0]) || (b[0] === 'box' && /^題目|^题目/.test(b[1]))
+      || ((b[0] === 'p' || b[0] === 'h') && (i === 0 || (nx && INTER.has(nx[0]))));
+    keep ? vis += h : fold += h;
+  });
+  if (judge) vis += `<details class="pinfo"><summary>${esc(T('pInfo'))}</summary>${judge}</details>`;
+  if (fold) vis += `<details class="pinfo"><summary>${esc(T('pMore'))}</summary>${fold}</details>`;
+  return vis;
+}
 /* 各種內容塊:回傳 HTML */
 const BL = {
   p: b => `<p class="say">${fx(b[1])}</p>`,
@@ -147,7 +239,7 @@ const BL = {
   warn: b => `<div class="warnbox say">${fx(b[1])}</div>`,
   par: b => showPar() ? `<div class="par say"><b>${esc(T('parH'))}</b>${fx(b[1])}</div>` : '',
   date: b => `<p class="say"><b>${fx(b[2])}：</b>${dateHTML(b[1])}</p>`,
-  notes: b => `<p><a class="lnk" href="${esc(CFG.links.notes[b[1]])}" target="_blank" rel="noopener">${esc(T('notes_' + b[1]))} ↗</a></p>`,
+  notes: b => `<p>${notesLink(b[1])}</p>`,
   flip: b => b[1].map(x => `<details class="flip"><summary><b class="say">${fx(x[0])}</b></summary><span class="say">${fx(x[1])}</span></details>`).join(''),
   go: b => `<button class="btn s w" data-a="leg" data-h="${esc(b[3])}">${fx(b[1])} →${b[2] ? `<small>${fx(b[2])}</small>` : ''}</button>`,
   leg: b => { const p = (legacy().p || {})[b[1]] || {}; return `<p class="fine"><b>${esc(T('legSt'))}：</b>${esc(p.doneAt ? T('legDone') : p.max ? T('legGo', { n: (p.step || 0) + 1 }) : T('legNew'))}</p>` },
@@ -289,42 +381,73 @@ function todayItem() {
   c.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : 0); return c[0] || null;
 }
 const trkName = t => X.ui['n_' + t];
+const t1Key = () => 't1.quick-' + su().g;
+/* 由舊列車頁做完賽道一 5 題:計入進度及廣場,機械貓留一張便利貼 */
+function syncLegacy() { if (!S.setup || !has('t1')) return; const k = t1Key(); if (legT1Done() && !S.done[k]) { S.done[k] = Date.now(); addNote(k); save() } }
+/* 第一頁:機械貓正在做的事、一句歡迎、開始按鈕、老師／校長入口 */
+function vWelcome() {
+  ensureCat(); save(); const k = lifeNow();
+  return `<section class="wel">${scene(k, true)}</section>
+   <h1 class="say">${esc(T('wlH'))}</h1><p class="lead say">${esc(T('wlP'))}</p>
+   <a class="btn w" href="${href('setup')}" data-fk="wlstart">${esc(T('wlStart'))} →</a>
+   <p class="fine wlf">${esc(T('wlFine'))}</p>
+   <div class="row wl2"><a class="btn s" href="${href('teachers')}">${esc(T('wlTeach'))} →</a><a class="lnk" href="${esc(CFG.links.register[LANG])}" target="_blank" rel="noopener">${esc(T('notReg'))}</a></div>`;
+}
 function vHome() {
-  if (!S.setup) return vSetup();
-  const s = su(), it = todayItem(), dls = deadlines(), near = dls[0];
-  let today;
-  if (!it) today = `<section class="today"><span class="eb">${esc(T('todayEb'))}</span><h2>${esc(T('allDoneH'))}</h2><p>${esc(T('allDoneP'))}</p></section>`;
-  else if (it.t1) today = `<section class="today"><span class="eb">${esc(T('todayEb'))} · ${esc(trkName('t1'))}</span><h2>${esc(T('t1TodayH', { g: X.ui.grades[s.g] }))}</h2><p>${esc(T('t1TodayP'))}</p><button class="btn" data-a="leg" data-h="t1-${s.g.toLowerCase()}">${esc(T('start'))} →</button></section>`;
-  else { const ms = S.m[mkey(it.trk, it.m.id)]; today = `<section class="today"><span class="eb">${esc(T('todayEb'))} · ${esc(trkName(it.trk))}</span><h2>${esc(it.m.t)}</h2><p>${esc(T('mins', { n: it.m.mins }))} · ${esc(it.m.aim)}</p><a class="btn" href="${href(it.trk, it.m.id)}">${esc(T(ms && ms.step ? 'cont' : 'start'))} →</a></section>` }
-  const prog = myTrks().map(trk => {
-    if (trk === 't1') return `<div class="card prog"><div class="hd"><b><img src="img/f6.webp" alt="" width="34" height="34">${esc(trkName('t1'))}</b><span>${esc(T('t1Soon'))}</span></div><p class="dl">${dlLine('t1')}</p><a class="lnk" href="${href('t1')}">${esc(T('openMap'))} →</a></div>`;
-    const p = progress(trk), who = trk === 't2' ? ['2a', '2b'].filter(has) : [trk];
-    return `<div class="card prog"><div class="hd"><b><img src="img/f${trk === 't2' ? 5 : 0}.webp" alt="" width="34" height="34">${esc(trkName(trk))}${trk === 't2' ? ' · ' + who.map(x => x.toUpperCase()).join('＋') : ''}</b><span>${esc(T('progN', p))}</span></div>
-     <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="${p.all}" aria-valuenow="${p.n}" aria-label="${esc(trkName(trk))}"><i style="width:${p.all ? Math.round(p.n / p.all * 100) : 0}%"></i></div>
-     ${who.map(w => `<p class="dl">${dlLine(w)}</p>`).join('')}<a class="lnk" href="${href(trk)}">${esc(T('openMap'))} →</a></div>`
-  }).join('');
+  if (!S.setup) return vWelcome();
+  syncLegacy();
+  const s = su(), it = todayItem(), dls = deadlines(), near = dls[0], k = lifeNow(), sleep = k === 'sleep';
+  const onlyT1 = myTrks().length === 1 && has('t1');
+  let eb = esc(T('todayEb')), body;
+  if (sleep) {
+    const go = it ? it.trk : myTrks()[0];
+    body = `<h2>${esc(T('lfSleepH'))}</h2><p class="say">${esc(T('lf_sleep'))}</p><a class="lnk on" href="${href(go)}">${esc(T('lfSleepGo'))} →</a>`;
+  } else if (!it) {
+    body = `<h2>${esc(T('allDoneH'))}</h2><p class="say">${esc(T(onlyT1 ? 't1DoneP' : 'allDoneP'))}</p>${onlyT1 ? `<button class="btn" data-a="leg" data-h="t1-${s.g.toLowerCase()}">${esc(T('t1Again'))} →</button>` : ''}`;
+  } else if (it.t1) {
+    eb += ' · ' + esc(trkName('t1'));
+    body = `<h2>${esc(T('t1TodayH', { g: X.ui.grades[s.g] }))}</h2><p class="say">${esc(T('t1TodayP'))}</p><button class="btn" data-a="leg" data-h="t1-${s.g.toLowerCase()}" data-fk="todaygo">${esc(T('start'))} →</button>`;
+  } else {
+    eb += ' · ' + esc(trkName(it.trk)); const ms = S.m[mkey(it.trk, it.m.id)];
+    body = `<h2>${esc(it.m.t)}</h2><p class="say">${esc(T('mins', { n: it.m.mins }))} · ${esc(it.m.aim)}</p><a class="btn" href="${href(it.trk, it.m.id)}" data-fk="todaygo">${esc(T(ms && ms.step ? 'cont' : 'start'))} →</a>`;
+  }
   ensureCat(); save();
-  const tc = S.cat ? `<img class="tcat" src="${catSrc(S.cat)}" alt="" width="199" height="240">` : '';
-  today = today.replace('<section class="today">', '<section class="today' + (tc ? ' hascat' : '') + '">').replace('</section>', tc + '</section>');
-  return `<span class="eb">${esc(T('homeEb'))}</span><h1>${esc(T(s.role === 'p' ? 'homeHP' : 'homeH'))}</h1>
-   ${plaza(T(!it ? 'plzHiDone' : s.role === 'p' ? 'plzHiP' : 'plzHi', { n: catN(S.cat) }))}
-   <p><span class="tag">${esc(X.ui.grades[s.g])}</span>${s.tr.map(t => `<span class="tag ${trkOf(t)}">${esc(X.ui['c_' + t])}</span>`).join('')}${s.city ? `<span class="tag">${esc(T('cityTag'))}</span>` : ''}<a class="lnk" href="${href('setup')}">${esc(T('change'))}</a></p>
-   ${s.city && has('t1') ? `<div class="okbox say">${fx(T('cityNote'))}</div>` : ''}
+  const aw = awayLine();
+  const today = `<section class="today hascat s-${k}" id="tour-today"><span class="eb">${eb}</span>
+    <p class="tstate say"><b>${esc(T('lfNow', { n: catN(S.cat), s: T('ls_' + k) }))}</b>${sleep ? '' : '「' + esc(T('lf_' + k)) + '」'}${aw ? `<br><small>${esc(aw)}</small>` : ''}</p>
+    ${body}<div class="tlife" aria-hidden="true"><img class="tcat me" src="${catSrc(S.cat)}" alt="" width="199" height="240">${PROP[k] || ''}</div></section>`;
+  /* 這一週:每條賽道下一件事,按截止日排列(只用設定檔已有的日期) */
+  const wk = su().tr.map(t => { const trk = trkOf(t), dl = firstDl(t); if (trk === 't1') return legT1Done() ? null : { t, x: T('t1TodayH', { g: X.ui.grades[s.g] }), dl }; const m = nextMod(trk); return m ? { t, x: m.t, dl, h: href(trk, m.id) } : null })
+    .filter(Boolean).filter((x, i, A) => A.findIndex(y => y.x === x.x) === i).sort((a, b) => (a.dl ? a.dl.d : '9') < (b.dl ? b.dl.d : '9') ? -1 : 1).slice(0, 3);
+  const week = wk.length >= 2 ? `<section class="card week"><h2>${esc(T('weekH'))}</h2><ol class="ul">${wk.map(w => `<li><b>${esc(X.ui['c_' + w.t])}</b>：${w.h ? `<a href="${w.h}">${esc(w.x)}</a>` : esc(w.x)}${w.dl ? `<br><small>${esc(T(w.dl.lab))} ${dateHTML(w.dl.k)}</small>` : ''}</li>`).join('')}</ol></section>` : '';
+  /* 我的路線:每條賽道一排小印 */
+  const route = myTrks().map(trk => {
+    if (trk === 't1') { const d = !!S.done[t1Key()]; return `<a class="rt" href="${href('t1')}"><b>${esc(trkName('t1'))}</b><span class="stamps" aria-hidden="true"><i class="${d ? 'on' : ''}"></i></span><small>${esc(d ? T('stDone') : T('t1Soon'))}</small></a>` }
+    const L = mods(trk).filter(m => !m.opt), p = progress(trk);
+    return `<a class="rt" href="${href(trk)}"><b>${esc(trkName(trk))}</b><span class="stamps" aria-hidden="true">${L.map(m => `<i class="${isDone(trk, m.id) ? 'on' : ''}"></i>`).join('')}</span><small>${esc(T('progN', p))}</small></a>`;
+  }).join('');
+  return `<span class="eb">${esc(T('homeEb'))}</span><h1>${esc(T(s.role !== 's' ? 'homeHP' : 'homeH'))}</h1>
    ${today}
-   ${near ? `<p class="lead say"><b>${esc(T('nearH'))}：</b>${esc(X.ui['c_' + near.t])} · ${esc(T(near.lab))} ${dateHTML(near.k)} <span class="fine">${esc(daysTo(near.d) === 0 ? T('dToday') : T('dLeft', { n: daysTo(near.d) }))}</span></p>` : ''}
-   <h2>${esc(T('progH'))}</h2>${prog}
+   ${it && it.m && !sleep && showPar() && it.m.par ? `<div class="par say"><b>${esc(T('parH'))}</b>${fx(it.m.par)}</div>` : ''}
+   ${near ? `<p class="lead say" id="tour-dl"><b>${esc(T('nearH'))}：</b>${esc(X.ui['c_' + near.t])} · ${esc(T(near.lab))} ${dateHTML(near.k)} <span class="fine">${esc(daysTo(near.d) === 0 ? T('dToday') : T('dLeft', { n: daysTo(near.d) }))}</span></p>` : ''}
+   ${s.city && has('t1') ? `<div class="okbox say">${fx(T('cityNote'))}</div>` : ''}
+   ${week}
+   <h2>${esc(T('routeH'))}</h2><div class="route">${route}</div>
+   ${plaza()}
+   ${notesBoard()}
+   <p class="tags"><span class="tag">${esc(X.ui.grades[s.g])}</span>${s.tr.map(t => `<span class="tag ${trkOf(t)}">${esc(X.ui['c_' + t])}</span>`).join('')}${s.city ? `<span class="tag">${esc(T('cityTag'))}</span>` : ''}<a class="lnk" href="${href('setup')}">${esc(T('change'))}</a></p>
    <p class="fine say">${esc(T('pace'))}</p>
-   <nav class="nav2" aria-label="${esc(T('moreH'))}"><a href="${href('day')}">${esc(T('nav_day'))}<small>${esc(T('nav_dayS'))}</small></a><a href="${href('parents')}">${esc(T('nav_parents'))}<small>${esc(T('nav_parentsS'))}</small></a>
-   <a href="${href('passport')}">${esc(T('nav_passport'))}<small>${esc(T('nav_passportS'))}</small></a><a href="${href('setup')}">${esc(T('nav_setup'))}<small>${esc(T('nav_setupS'))}</small></a></nav>
-   <div class="card soft"><b>${esc(T('notesH'))}</b><p class="fine">${esc(T('notesP'))}</p>${myTrks().map(t => `<a class="lnk" href="${esc(CFG.links.notes[t])}" target="_blank" rel="noopener">${esc(T('notes_' + t))} ↗</a>`).join('<br>')}</div>`;
+   <nav class="nav2" aria-label="${esc(T('moreH'))}"><a href="${href('setup')}">${esc(T('nav_setup'))}<small>${esc(T('nav_setupS'))}</small></a><a href="${href('teachers')}">${esc(T('nav_teachers'))}<small>${esc(T('teachEb'))}</small></a></nav>
+   <div class="card soft"><b>${esc(T('notesH'))}</b><p class="fine">${esc(T('notesP'))}</p>${myTrks().map(notesLink).join('<br>')}</div>`;
 }
 function dlLine(t) { const d = firstDl(t); return d ? `${esc(X.ui['c_' + t])}：${esc(T(d.lab))} ${dateHTML(d.k)}` : `${esc(X.ui['c_' + t])}：${esc(T('dlNone'))}` }
 
-/* 三步設定 */
+/* 四步設定:賽道 → 年級 → 誰在用 → 揀機械貓 */
 let W = null;
 function vSetup() {
-  if (!W) { W = Object.assign({ step: 0 }, JSON.parse(JSON.stringify(su()))); if (!S.setup) W.role = null }
-  const k = W.step, bar = `<div class="steps3" aria-hidden="true">${[0, 1, 2].map(i => `<i class="${i <= k ? 'on' : ''}"></i>`).join('')}</div>`;
+  ensureCat();
+  if (!W) { W = Object.assign({ step: 0, cat: S.cat }, JSON.parse(JSON.stringify(su()))); if (!S.setup) W.role = null }
+  const k = W.step, bar = `<div class="steps3" aria-hidden="true">${[0, 1, 2, 3].map(i => `<i class="${i <= k ? 'on' : ''}"></i>`).join('')}</div>`;
   let body, ok;
   if (k === 0) {
     ok = W.tr.length > 0;
@@ -334,18 +457,24 @@ function vSetup() {
     ok = !!W.g;
     const row = (lab, gs) => `<p class="q">${esc(lab)}</p><div class="choices g3">${gs.map(g => `<button class="opt c" data-a="sug" data-g="${g}" data-fk="su:${g}" aria-pressed="${W.g === g}">${esc(X.ui.grades[g])}</button>`).join('')}</div>`;
     body = `<h1>${esc(T('su2H'))}</h1><p class="lead">${esc(T('su2P'))}</p>${row(T('pri'), GRADES.slice(0, 6))}${row(T('sec'), GRADES.slice(6, 12))}${row(T('uni'), ['U'])}`;
-  } else {
+  } else if (k === 2) {
     ok = !!W.role;
-    body = `<h1>${esc(T('su3H'))}</h1><p class="lead">${esc(T('su3P'))}</p><div class="choices">${[['s', 'roleS', 'roleSS'], ['p', 'roleP', 'rolePS']].map(r => `<button class="opt" data-a="surole" data-r="${r[0]}" data-fk="su:${r[0]}" aria-pressed="${W.role === r[0]}"><span class="mk" aria-hidden="true">${W.role === r[0] ? '✓' : ''}</span><span>${esc(T(r[1]))}<small>${esc(T(r[2]))}</small></span></button>`).join('')}</div><p class="fine">${esc(T('suPriv'))}</p>`;
+    body = `<h1>${esc(T('su3H'))}</h1><p class="lead">${esc(T('su3P'))}</p><div class="choices">${[['s', 'roleS', 'roleSS'], ['pc', 'roleC', 'roleCS'], ['p', 'roleP', 'rolePS']].map(r => `<button class="opt" data-a="surole" data-r="${r[0]}" data-fk="su:${r[0]}" aria-pressed="${W.role === r[0]}"><span class="mk" aria-hidden="true">${W.role === r[0] ? '✓' : ''}</span><span>${esc(T(r[1]))}<small>${esc(T(r[2]))}</small></span></button>`).join('')}</div><p class="fine">${esc(T('suPriv'))}</p>`;
+  } else {
+    ok = !!W.cat;
+    const o = CATS.map(c => c.id).filter(x => x !== W.cat).sort((a, b) => hsh(S.seed + a) - hsh(S.seed + b)), rec = [W.cat, o[0], o[1]].filter(Boolean);
+    body = `<h1>${esc(T('su4H'))}</h1><p class="lead">${esc(T('su4P'))}</p><div class="catgrid c3" role="group" aria-label="${esc(T('su4H'))}">${rec.map(id => `<button data-a="sucat" data-c="${id}" data-fk="su:c${id}" aria-pressed="${W.cat === id}"><img src="${catSrc(id)}" alt="" width="199" height="240">${esc(catN(id))}</button>`).join('')}</div>
+     <button class="lnk" data-a="catsheet" id="suall">${esc(T('su4All'))} →</button>`;
   }
   return `<span class="eb">${esc(T('suEb', { n: k + 1 }))}</span>${bar}${body}
-   <div class="nextbar"><span class="g">${k ? `<button class="lnk" data-a="suback">← ${esc(T('prev'))}</button>` : ''}</span><button class="btn" data-a="sunext" data-fk="su:next" ${ok ? '' : 'aria-disabled="true"'}>${esc(T(k < 2 ? 'next' : 'suDone'))} →</button></div>`;
+   ${S.setup && k === 0 ? `<p><button class="lnk" data-a="tour">${esc(T('trAgain'))}</button></p>` : ''}
+   <div class="nextbar"><span class="g">${k ? `<button class="lnk" data-a="suback">← ${esc(T('prev'))}</button>` : ''}</span><button class="btn" data-a="sunext" data-fk="su:next" ${ok ? '' : 'aria-disabled="true"'}>${esc(T(k < 3 ? 'next' : 'suDone'))} →</button></div>`;
 }
 
 /* 培訓地圖 */
 function vMap(trk) {
   const D = X[trk], list = mods(trk), nx = nextMod(trk), who = trk === 't2' ? ['2a', '2b'].filter(has) : [trk];
-  const item = (m, i) => { const done = isDone(trk, m.id), ms = S.m[mkey(trk, m.id)]; return `<li><a href="${href(trk, m.id)}" class="${done ? 'done' : nx && nx.id === m.id ? 'cur' : ''}">${m.hero ? `<img class="hf" src="img/f${m.hero}.webp" alt="" width="48" height="48">` : `<span class="no" aria-hidden="true">${done ? '✓' : i + 1}</span>`}<span class="tx"><b>${esc(m.t)}</b><small>${m.hero ? esc(X.ui.heroN[m.hero - 1]) + ' · ' : ''}${esc(m.tag)} · ${esc(T('mins', { n: m.mins }))}</small></span>${!done && nx && nx.id === m.id && S.cat ? `<img class="here" src="${catSrc(S.cat)}" alt="${esc(T('here'))}" width="199" height="240">` : `<span class="st">${esc(done ? T('stDone') : ms && ms.step ? T('stGo') : '')}</span>`}</a></li>` };
+  const item = (m, i) => { const done = isDone(trk, m.id), ms = S.m[mkey(trk, m.id)]; return `<li><a href="${href(trk, m.id)}" class="${done ? 'done' : nx && nx.id === m.id ? 'cur' : ''}">${m.hero ? `<img class="hf" src="img/f${m.hero}.webp" alt="" width="48" height="48">` : `<span class="no" aria-hidden="true">${done ? '✓' : m.opt ? '+' : i + 1}</span>`}<span class="tx"><b>${esc(m.t)}</b><small>${m.hero ? esc(X.ui.heroN[m.hero - 1]) + ' · ' : ''}${esc(m.tag)} · ${esc(T('mins', { n: m.mins }))}</small></span>${!done && nx && nx.id === m.id && S.cat ? `<img class="here" src="${catSrc(S.cat)}" alt="${esc(T('here'))}" width="199" height="240">` : `<span class="st">${esc(done ? T('stDone') : ms && ms.step ? T('stGo') : m.opt ? T('optTag') : '')}</span>`}</a></li>` };
   let h = `<span class="eb">${esc(T('mapEb'))}</span><h1>${esc(D.name)}</h1><p class="lead say">${fx(D.lead)}</p>`;
   if (D.see) h += `<div class="okbox say">${fx(D.see)}</div>`;
   if (!S.setup) h += `<div class="warnbox say">${esc(T('needSetup'))} <a class="lnk" href="${href('setup')}">${esc(T('nav_setup'))} →</a></div>`;
@@ -353,58 +482,84 @@ function vMap(trk) {
   if (D.tier && S.setup) h += `<div class="card soft say"><b>${esc(T('tierH', { s: X.ui.stages[stage()], g: X.ui.grades[su().g] }))}</b><p>${fx(D.tier[stage()])}</p></div>`;
   const secs = D.secs || [[null, list.map(m => m.id)]];
   let n = 0;
-  secs.forEach(sec => { const ms = list.filter(m => sec[1].includes(m.id)); if (!ms.length) return; if (sec[0]) h += `<h2>${esc(sec[0])}</h2>`; h += `<ol class="map">${ms.map(m => item(m, n++)).join('')}</ol>` });
-  h += `<p class="fine say">${esc(T('pace'))}</p><p><a class="lnk" href="${esc(CFG.links.notes[trk])}" target="_blank" rel="noopener">${esc(T('notes_' + trk))} ↗</a></p>`;
+  secs.forEach(sec => { const ms = list.filter(m => sec[1].includes(m.id)); if (!ms.length) return; if (sec[0]) h += `<h2>${esc(sec[0])}</h2>`; h += `<ol class="map">${ms.map(m => item(m, m.opt ? n : n++)).join('')}</ol>` });
+  h += `<p class="fine say">${esc(T('pace'))}</p><p>${notesLink(trk)}</p>`;
   return h;
 }
 function vT1() {
   const g = R.g || su().g;
   return `<span class="eb">${esc(T('mapEb'))}</span><h1>${esc(X.t1.name)}</h1><p class="lead say">${fx(X.t1.lead)}</p>
    ${S.setup && has('t1') ? `<p class="dl say">${dlLine('t1')}</p>` : ''}${su().city ? `<div class="okbox say">${fx(T('cityNote'))}</div>` : ''}
-   <div class="warnbox say">${fx(X.t1.soon)}</div>
+   <div class="okbox say">${fx(X.t1.soon)}</div>
    <button class="btn w" data-a="leg" data-h="t1${g ? '-' + g.toLowerCase() : ''}">${esc(g ? T('t1TodayH', { g: X.ui.grades[g] }) : T('t1Open'))} →</button>
    <div class="card soft say"><b>${esc(X.t1.rulesH)}</b><ul class="ul">${X.t1.rules.map(x => `<li>${fx(x)}</li>`).join('')}</ul></div>
-   <p><a class="lnk" href="${esc(CFG.links.notes.t1)}" target="_blank" rel="noopener">${esc(T('notes_t1'))} ↗</a></p>`;
+   <p>${notesLink('t1')}</p>`;
 }
+/* 寫字欄:寫了幾格 */
+function wrote(trk, id) { const M = mod(trk, id), ms = mst(trk, id); let n = 0, all = 0, first = -1; M.steps.forEach((st, i) => blocks(st.b).forEach(b => { if (b[0] === 'write') { all++; if (String(ms.d[b[1]] || '').trim()) n++; else if (first < 0) first = i } })); return { n, all, first } }
 /* 模組頁 */
 function vMod(trk, id) {
   const M = mod(trk, id); if (!M) return vMap(trk); CURM = M;
-  const ms = mst(trk, id), n = M.steps.length, list = mods(trk), idx = list.findIndex(m => m.id === id);
+  const ms = mst(trk, id), n = M.steps.length, list = mods(trk).filter(m => !m.opt), idx = list.findIndex(m => m.id === id);
   if (ms.step >= n) {
-    ensureCat(); const nx = nextMod(trk), d = new Date(S.done[mkey(trk, id)] || Date.now()), FR = friends(), NF = FR[FR.length - 1];
+    ensureCat(); const nx = nextMod(trk), d = new Date(S.done[mkey(trk, id)] || Date.now()), FR = friends(), NF = FR[FR.length - 1], w = wrote(trk, id);
     return `<span class="eb">${esc(X[trk].name)}</span><h1>${esc(T('modDoneH'))}</h1><div class="celebr">${S.cat ? `<img src="${catSrc(S.cat)}" alt="" width="199" height="240">` : ''}<div class="stampbig" role="img" aria-label="${esc(T('stDone'))}"><span>${esc(T('stDone'))}<br><small>${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}</small></span></div>${NF ? `<img class="nf" src="${catSrc(NF)}" alt="" width="199" height="240">` : ''}</div>${NF ? `<p class="okbox say" style="text-align:center">${esc(T('plzNew', { n: catN(NF), all: FR.length }))}</p>` : ''}
      <p class="lead say" style="text-align:center"><b>${esc(M.t)}</b><br>${fx(M.take || '')}</p>
+     ${w.all ? `<p class="fine" style="text-align:center">${esc(T('wroteN', { n: w.n, all: w.all }))}${w.first >= 0 ? ` <button class="lnk" data-a="fillgap" data-s="${w.first}">${esc(T('wroteGo'))}</button>` : ''}</p>` : ''}
      <div class="row" style="justify-content:center">${nx ? `<a class="btn" href="${href(trk, nx.id)}">${esc(T('nextMod'))}：${esc(nx.t)} →</a>` : `<a class="btn" href="${href('home')}">${esc(T('backHome'))} →</a>`}<a class="btn s" href="${href(trk)}">${esc(T('backMap'))}</a><button class="btn s" data-a="redo">${esc(T('redo'))}</button></div><p class="fine" style="text-align:center">${esc(T('rest'))}</p>`;
   }
   const st = M.steps[ms.step], g = stepGate(trk, id);
-  return `<span class="eb">${esc(X[trk].name)} · ${esc(T('modN', { n: idx + 1, all: list.length }))}</span><h1>${esc(M.t)}</h1>
+  return `<span class="eb">${esc(X[trk].name)} · ${esc(M.opt ? T('optTag') : T('modN', { n: idx + 1, all: list.length }))}</span><div class="row sb mh"><h1 class="say">${esc(M.t)}</h1>${ttsBtn()}</div>
    <div class="dots" aria-hidden="true">${M.steps.map((s, i) => `<i class="${i === ms.step ? 'on' : i < ms.step ? 'done' : ''}">${esc(s.n)}</i>`).join('')}</div>
    <p class="sr" role="status">${esc(T('stepSr', { n: ms.step + 1, all: n, s: st.n }))}</p>
    ${ms.step === 0 ? `<p class="lead say"><b>${esc(T('aimH'))}：</b>${fx(M.aim)}</p>${M.par && showPar() ? `<div class="par say"><b>${esc(T('parH'))}</b>${fx(M.par)}</div>` : ''}` : ''}
-   <div class="row sb"><h2 class="say">${esc(st.n)}${st.h ? '：' + esc(st.h) : ''}</h2>${ttsBtn()}</div>
-   ${blocks(st.b).map(b => BL[b[0]] ? BL[b[0]](b, ms.d) : '').join('')}
+   <h2 class="say">${esc(st.n)}${st.h ? '：' + esc(st.h) : ''}</h2>
+   ${stepHTML(st.b, ms.d)}
    <div class="nextbar"><span class="g" id="gate" role="status">${ms.step ? `<button class="lnk" data-a="mprev">← ${esc(T('prev'))}</button> ` : ''}${esc(g)}</span><button class="btn" data-a="mnext" data-fk="mnext" ${g ? 'aria-disabled="true"' : ''}>${esc(ms.step < n - 1 ? T('next') : T('finish'))} →</button></div>`;
 }
-/* 給老師:原首頁的課程對應、學校方案、數學集市攤位、列印檔 */
+/* 給老師及校長:校長一頁紙、課程對應(只引用章程 12.1、13.1 及附錄一)、模組清單、課堂工具、列印檔 */
 function vTeachers() {
   const P = X.teach, f = (CL() === 'sc' ? 'sc' : 'tc');
+  const rows = trk => X[trk].mods.map(m => `<tr><td>${esc(m.t)}</td><td>${esc(m.tag)}</td><td>${esc(T('mins', { n: m.mins }))}</td><td>${fx(m.aim)}</td></tr>`).join('');
+  const tbl = trk => `<h3>${esc(X[trk].name)}</h3><div class="tblw" tabindex="0" role="region" aria-label="${esc(X[trk].name)}"><table class="tbl"><thead><tr>${P.modsCols.map(c => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows(trk)}</tbody></table></div>`;
   return `<span class="eb">${esc(T('teachEb'))}</span><h1>${esc(P.h)}</h1><p class="lead say">${fx(P.p)}</p>
-   <div class="choices">${P.tools.map(x => `<button class="opt" data-a="leg" data-h="${esc(x[2])}"><span>${esc(x[0])}<small>${esc(x[1])}</small></span></button>`).join('')}</div>
-   <h2>${esc(P.pdfH)}</h2><ul class="ul">${P.pdfs.map(x => `<li><a href="files/${esc(x[1].replace('{l}', f))}" target="_blank" rel="noopener">${esc(x[0])}</a></li>`).join('')}</ul><p class="fine say">${fx(P.note)}</p>`;
+   <section class="card one" id="one"><div class="row sb"><h2>${esc(P.oneH)}</h2><button class="btn s noprint" data-a="print">${esc(P.printBtn)}</button></div>
+    ${P.one.map(x => `<h3>${esc(x[0])}</h3><p class="say">${fx(x[1])}</p>`).join('')}
+    <h3>${esc(P.fwdH)}</h3><blockquote class="fwd say">${esc(P.fwd)}</blockquote><p class="fine">${esc(T('disc'))}</p></section>
+   <h2>${esc(P.curH)}</h2><p class="fine">${esc(P.curP)}</p>${P.cur.map(c => `<div class="card soft"><b>${esc(c[0])}</b><ul class="ul">${c[1].map(x => `<li class="say">${fx(x)}</li>`).join('')}</ul></div>`).join('')}
+   <h2>${esc(P.modsH)}</h2><p class="fine">${esc(P.modsP)}</p><h3>${esc(X.t1.name)}</h3><p class="fine">${esc(P.t1Mods)}</p>${tbl('t2')}${tbl('t3')}
+   <h2>${esc(P.toolsH)}</h2><div class="choices">${P.tools.map(x => `<button class="opt" data-a="leg" data-h="${esc(x[2])}"><span>${esc(x[0])}<small>${esc(x[1])}</small></span></button>`).join('')}</div>
+   <h2>${esc(P.pdfH)}</h2><ul class="ul pdfs">${P.pdfs.map(x => `<li><a href="files/${esc(x[1].replace('{l}', f))}" target="_blank" rel="noopener">${esc(x[0])}</a></li>`).join('')}</ul><p class="fine say">${fx(P.note)}</p>`;
 }
-const vSoon = k => `<span class="eb">${esc(T('soonEb'))}</span><h1>${esc(T('nav_' + k))}</h1><div class="warnbox say">${fx(X.soon[k])}</div><p><a class="btn s" href="${href('home')}">${esc(T('backHome'))}</a></p>`;
+const vSoon = k => { const o = X.soon[k]; return `<span class="eb">${esc(T('soonEb'))}</span><h1>${esc(T('nav_' + k))}</h1><p class="lead say">${fx(o.p)}</p><div class="card soft"><b>${esc(T('soonNow'))}</b><ul class="ul">${o.now.map(x => `<li class="say">${fx(x)}</li>`).join('')}</ul>${(S.setup ? myTrks() : ['t1', 't2', 't3']).map(notesLink).join('<br>')}</div><p><a class="btn" href="${href('home')}">${esc(T('backHome'))} →</a></p>` };
+
+/* ---------- 三步新手導覽(由機械貓帶;可略過;只自動出現一次;「我的設定」可重看) ---------- */
+let TOUR = null;
+const TOURT = ['tour-today', 'tour-plz', 'tour-dl'];
+function tourPaint() {
+  document.querySelectorAll('.tourhl').forEach(x => x.classList.remove('tourhl')); const old = $('tour'); if (old) old.remove();
+  if (TOUR == null) return;
+  const tg = $(TOURT[TOUR]); if (tg) { tg.classList.add('tourhl'); tg.scrollIntoView({ block: 'center', behavior: S.a.rm ? 'auto' : 'smooth' }) }
+  const txt = T('tr' + (TOUR + 1)) + (TOUR === 2 && su().role !== 's' ? ' ' + T('tr3P') : ''), last = TOUR === 2;
+  const el = document.createElement('div'); el.id = 'tour'; el.className = 'tour'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'false'); el.setAttribute('aria-labelledby', 'tourt');
+  el.innerHTML = `<img src="${catSrc(S.cat)}" alt="" width="199" height="240"><div><b id="tourt">${esc(T('trN', { n: TOUR + 1 }))} · ${esc(T('trAria'))}</b><p>${esc(txt)}</p><div class="row"><button class="btn" data-a="trnext" id="trnext">${esc(T(last ? 'trDone' : 'trNext'))}</button>${last ? '' : `<button class="btn s" data-a="trskip">${esc(T('trSkip'))}</button>`}</div></div>`;
+  document.body.appendChild(el); $('trnext').focus({ preventScroll: true });
+}
+function tourEnd() { TOUR = null; S.tour = 1; save(); tourPaint(); const m = $('main'); if (m) m.focus({ preventScroll: true }) }
 
 function title() {
   const v = R.view;
   if (R.mod && X[v] && mod(v, R.mod)) return mod(v, R.mod).t;
-  return v === 'home' ? T(S.setup ? 'homeH' : 'su1H') : v === 'setup' ? T('nav_setup') : X[v] ? X[v].name : v === 'teachers' ? X.teach.h : T('nav_' + v);
+  return v === 'home' ? T(S.setup ? (su().role !== 's' ? 'homeHP' : 'homeH') : 'ttlWelcome') : v === 'setup' ? T('ttlSetup') : X[v] ? X[v].name : v === 'teachers' ? X.teach.h : T('nav_' + v);
 }
+/* 頁頂標題:用短名,避免在手機上截斷(完整名稱放在 <title> 及頁內標題) */
+function headTitle() { const v = R.view; return ['t1', 't2', 't3'].includes(v) ? T('sh_' + v) : title() }
 let lastRoute = '';
 function render(focusKey) {
   const v = R.view; sayStop(); if (!R.mod) tmStop();
   document.documentElement.lang = HL[CL()];
   document.title = title() + ' · ' + T('site');
-  $('ev').textContent = T('event'); $('ttl').textContent = title(); $('skip').textContent = T('skip');
+  $('ev').textContent = T('event'); $('ttl').textContent = headTitle(); $('skip').textContent = T('skip');
   document.querySelectorAll('[data-lang]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang === LANG)));
   $('lang').setAttribute('aria-label', T('langAria')); $('disp').setAttribute('aria-label', T('dispH')); $('disp').title = T('dispH');
   const up = R.mod ? href(v) : href('home'), bk = $('back');
@@ -413,8 +568,10 @@ function render(focusKey) {
   if (v === 'home') h = vHome(); else if (v === 'setup') h = vSetup(); else if (v === 't1') h = vT1();
   else if (v === 't2' || v === 't3') h = R.mod ? vMod(v, R.mod) : vMap(v);
   else if (v === 'teachers') h = vTeachers(); else h = vSoon(v);
-  if (!HAS[LANG]) h = `<div class="warnbox" lang="en">The English version of the new training modules will be added in the next preview. Traditional Chinese is shown for now.</div>` + h;
+  if (!HAS[LANG]) h = `<div class="warnbox" lang="en">The English version of the new training modules is coming soon. Traditional Chinese is shown for now.</div>` + h;
+  if (REVIEW) h = `<div class="warnbox">${esc(T('rvBanner'))}</div>` + h;
   $('main').innerHTML = h + `<p class="disc say">${esc(T('disc'))}</p>`;
+  if (v === 'home' && !R.mod && S.setup && !S.tour && TOUR == null) { TOUR = 0; setTimeout(tourPaint, 60) } else if (TOUR != null && v === 'home') setTimeout(tourPaint, 0); else if (TOUR != null) { TOUR = null; tourPaint() }
   $('ft').innerHTML = `${esc(T('org'))}<br>${fx(T('contact'))}<br><a href="${href('teachers')}">${esc(T('nav_teachers'))}</a> · <a href="${esc(CFG.links.register[LANG])}" target="_blank" rel="noopener">${esc(T('notReg'))}</a> · <button id="clr" data-a="clr">${esc(T('clr'))}</button><br>${esc(T('ver', { v: CFG.version }))}`;
   const route = v + '/' + (R.mod || '') + '/' + (R.mod && X[v] && mod(v, R.mod) ? mst(v, R.mod).step : W ? W.step : '');
   if (route !== lastRoute) { lastRoute = route; window.scrollTo(0, 0); if (focusKey !== false) $('main').focus({ preventScroll: true }) }
@@ -452,35 +609,50 @@ function setLang(l, fromHash) {
   loadLang(l).then(c => { X = c; if (!fromHash) { history.replaceState(null, '', href(R.view, R.mod)) } const h = parse(); R = { view: h.view, mod: h.mod, g: h.g }; lastRoute = ''; render() });
 }
 window.addEventListener('hashchange', reroute);
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('sheet')) sheet() });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if ($('sheet')) { document.querySelector('#sheet .catgrid') ? catSheet() : sheet() } else if (TOUR != null) tourEnd(); return }
+  if (e.key === 'Enter' && e.target.id === 'ntin') { e.preventDefault(); const b = document.querySelector('[data-a="ntpost"]'); if (b) b.click() }
+});
 document.addEventListener('click', e => {
-  if (e.target.id === 'sheet') { sheet(); return }
+  if (e.target.id === 'sheet') { document.querySelector('#sheet .catgrid') ? catSheet() : sheet(); return }
   const b = e.target.closest('button,[data-a]'); if (!b || b.disabled) return; const d = b.dataset, fk = d.fk;
   if (d.lang) { setLang(d.lang); return }
   if (b.id === 'disp' || d.a === 'sheet') { sheet(); return }
   if (d.a === 'fs') { S.a.fs = +d.i; save(); applyA11y(); sheet(); sheet(); return }
   if (d.a === 'a11y') { if (d.k === 'dark') { const on = ls.get(TKEY) === 'dark'; on ? ls.set(TKEY, 'light') : ls.set(TKEY, 'dark') } else S.a[d.k] = S.a[d.k] ? 0 : 1; save(); applyA11y(); sheet(); sheet(); return }
-  if (d.a === 'clr') { if (!d.sure) { d.sure = '1'; b.textContent = T('clrSure'); setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = T('clr') } }, 4000); return } ls.del(KEY); ls.del(LEG); S = fresh(); W = null; applyA11y(); location.hash = '#' + LANG; lastRoute = ''; reroute(); toast(T('cleared')); return }
+  if (d.a === 'clr') { if (!d.sure) { d.sure = '1'; b.textContent = T('clrSure'); setTimeout(() => { if (b.isConnected) { delete b.dataset.sure; b.textContent = T('clr') } }, 4000); return } ls.del(KEY); ls.del(LEG); S = fresh(); W = null; TOUR = null; tourPaint(); applyA11y(); location.hash = '#' + LANG; lastRoute = ''; reroute(); toast(T('cleared')); return }
   if (d.a === 'leg') { toLegacy(d.h); return }
   if (d.a === 'catsheet') { catSheet(); return }
-  if (d.a === 'catpick') { S.cat = d.c; save(); $('sheet').remove(); render(false); const cb = $('catbtn'); if (cb) cb.focus(); toast(T('plzNow', { n: catN(S.cat) })); return }
+  if (d.a === 'catpick') {
+    if (R.view === 'setup' && W) { W.cat = d.c; $('sheet').remove(); render('su:c' + d.c); const x = document.querySelector(`[data-fk="su:c${d.c}"]`) || $('suall'); if (x) x.focus(); return }
+    S.cat = d.c; save(); $('sheet').remove(); render(false); const cb = $('catbtn'); if (cb) cb.focus(); const st = $('plzst'); if (st) st.textContent = T('plzNow', { n: catN(S.cat) }); nod(); return
+  }
+  if (d.a === 'ntpost') { const x = $('ntin'), v = x ? x.value.trim().slice(0, 30) : ''; if (!v) { if (x) x.focus(); return } S.mine = { t: v, at: Date.now() }; save(); render(false); nod(); const m = document.querySelector('.nt.mine'); if (m) { m.setAttribute('tabindex', '-1'); m.focus({ preventScroll: true }) } return }
+  if (d.a === 'ntdel') { S.mine = null; save(); render(false); const x = $('ntin'); if (x) x.focus({ preventScroll: true }); return }
+  if (d.a === 'tour') { S.tour = 0; save(); W = null; TOUR = null; location.hash = '#' + LANG; return }
+  if (d.a === 'trnext') { if (TOUR >= 2) tourEnd(); else { TOUR++; tourPaint() } return }
+  if (d.a === 'trskip') { tourEnd(); return }
+  if (d.a === 'print') { window.print(); return }
   if (d.a === 'tts') { sayPage(); return }
   /* 設定 */
   if (d.a === 'sutr') { const i = W.tr.indexOf(d.t); i < 0 ? W.tr.push(d.t) : W.tr.splice(i, 1); W.tr.sort((a, b) => TRK.indexOf(a) - TRK.indexOf(b)); if (!W.tr.includes('t1')) W.city = false; render(fk); return }
   if (d.a === 'sucity') { W.city = !W.city; render(fk); return }
-  if (d.a === 'sug') { W.g = d.g; render(fk); return }
-  if (d.a === 'surole') { W.role = d.r; render(fk); return }
+  /* 單選步驟(年級、誰在用):選了即自動到下一步,減少按鍵;可按「上一步」返回 */
+  if (d.a === 'sug') { W.g = d.g; render(fk); setTimeout(() => { if (W && W.step === 1 && W.g === d.g) { W.step++; render() } }, 220); return }
+  if (d.a === 'surole') { W.role = d.r; render(fk); setTimeout(() => { if (W && W.step === 2 && W.role === d.r) { W.step++; render() } }, 220); return }
+  if (d.a === 'sucat') { W.cat = d.c; render(fk); return }
   if (d.a === 'suback') { W.step--; render(); return }
   if (d.a === 'sunext') {
-    if (b.getAttribute('aria-disabled')) { toast(T(['suG1', 'suG2', 'suG3'][W.step])); return }
-    if (W.step < 2) { W.step++; render(); return }
-    S.setup = { tr: W.tr, g: W.g, role: W.role, city: !!W.city }; ensureCat(); save(); W = null; location.hash = '#' + LANG; lastRoute = ''; reroute(); return
+    if (b.getAttribute('aria-disabled')) { toast(T(['suG1', 'suG2', 'suG3', 'suG4'][W.step])); return }
+    if (W.step < 3) { W.step++; render(); return }
+    S.setup = { tr: W.tr, g: W.g, role: W.role, city: !!W.city }; if (W.cat) S.cat = W.cat; ensureCat(); save(); W = null; location.hash = '#' + LANG; lastRoute = ''; reroute(); return
   }
   /* 模組 */
   if (!R.mod) return; const trk = R.view, ms = mst(trk, R.mod), D = ms.d, id = d.id, re = () => { save(); render(fk) };
   const blk = () => blocks(mod(trk, R.mod).steps[ms.step].b).find(x => x[1] === id);
   switch (d.a) {
-    case 'mnext': { const g = stepGate(trk, R.mod); if (g) { toast(g); return } ms.step++; if (ms.step >= mod(trk, R.mod).steps.length && !S.done[mkey(trk, R.mod)]) S.done[mkey(trk, R.mod)] = Date.now(); save(); render(); return }
+    case 'mnext': { const g = stepGate(trk, R.mod); if (g) { toast(g); return } ms.step++; if (ms.step >= mod(trk, R.mod).steps.length && !S.done[mkey(trk, R.mod)]) { S.done[mkey(trk, R.mod)] = Date.now(); addNote(mkey(trk, R.mod)) } save(); render(); return }
+    case 'fillgap': ms.step = Math.max(0, +d.s || 0); save(); render(); return;
     case 'mprev': ms.step = Math.max(0, ms.step - 1); save(); render(); return;
     case 'redo': S.m[mkey(trk, R.mod)] = { step: 0, d: {} }; save(); render(); return;
     case 'mcq': { const s = D[id] || (D[id] = { w: [], a: null }), i = +d.i, ans = blk()[4]; if (s.a != null) return; if (i === ans || s.w.length) s.a = i; else s.w.push(i); re(); return }
@@ -521,6 +693,10 @@ document.addEventListener('change', e => {
 
 /* ---------- 啟動 ---------- */
 applyA11y();
-{ const h = parse(); if (h.old) location.replace(CFG.links.legacy + location.hash); else { LANG = pickLang(); ls.set(LKEY, LANG); loadLang(LANG).then(c => { X = c; reroute() }).catch(() => { $('main').textContent = '內容未能載入，請重新整理頁面。' }) } }
+SEEN0 = S.seenAt || 0; S.seenAt = Date.now(); save();
+/* 機械貓一直在生活:時段轉換時更新首頁(正在輸入時不更新) */
+let LIFE0 = lifeNow();
+setInterval(() => { const k = lifeNow(); if (k === LIFE0) return; LIFE0 = k; const a = document.activeElement; if (X && R.view === 'home' && !R.mod && !$('sheet') && TOUR == null && !(a && /INPUT|TEXTAREA/.test(a.tagName))) render(false) }, 60e3);
+{ const h = parse(); if (h.old) location.replace(CFG.links.legacy + location.hash); else { LANG = pickLang(); ls.set(LKEY, LANG); loadLang(LANG).then(c => { X = c; reroute() }).catch(e => { console.error(e); $('main').textContent = '內容未能載入，請重新整理頁面。' }) } }
 if ('serviceWorker' in navigator && location.protocol === 'https:') { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { }) }) }
 })();

@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-Hant-HK"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="description" content="Practifly AI 三條賽道體驗:賽道一 5 題快測、賽道二數學建模體驗、賽道三創作小遊戲;繁 / 简 / EN;不用帳號,作答不上傳。"><link rel="icon" href="../img/f0.webp" type="image/webp"><title>Practifly AI 三條賽道體驗</title>
 
-<style>body{margin:0}</style></head><body><style>
+<style>body{margin:0}.pfhome{flex:none;min-height:44px;display:inline-flex;align-items:center;padding:6px 10px;border-radius:12px;border:1.5px solid rgba(255,255,255,.45);color:#F3EEFF;text-decoration:none;font-weight:800;font-size:.8rem;white-space:nowrap}.pfsol{margin:8px 0}.pfsol>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:800;text-decoration:underline;text-underline-offset:3px}.pfkey{margin:8px 0}@media (max-width:380px){#pfm{display:none}}</style></head><body><style>
 /* 灣區時光列車號 · 賽道二體驗 v2.0
    版面:深紫星空外框(兩個主題都係夜空)+ 霓虹車窗(.win:亮 = 白晝站台,暗 = 窗內轉夜)+ 8 站列車進度軌 */
 :root{
@@ -676,7 +676,7 @@ details.t1r[open] em{display:none}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 <div class="sky" id="sky" aria-hidden="true"></div>
-<header class="bar gut"><div class="in"><span id="pfm"></span><div class="tt"><small id="ev"></small><b id="ttl"></b><span id="sub"></span></div><button class="homeb hide" id="home"></button><div class="lang" id="lang" role="group"><button data-lang="tc" lang="zh-Hant">繁</button><button data-lang="sc" lang="zh-Hans">简</button><button data-lang="en" lang="en">EN</button></div><button class="thm" id="thm"></button></div></header>
+<header class="bar gut"><div class="in"><span id="pfm"></span><div class="tt"><small id="ev"></small><b id="ttl"></b><span id="sub"></span></div><a class="pfhome" id="pfhome" href="../index.html" onclick="pfBack();return false">← 回到我的培訓</a><button class="homeb hide" id="home"></button><div class="lang" id="lang" role="group"><button data-lang="tc" lang="zh-Hant">繁</button><button data-lang="sc" lang="zh-Hans">简</button><button data-lang="en" lang="en">EN</button></div><button class="thm" id="thm"></button></div></header>
 <div class="railw gut hide" id="railw"><div class="in rail" id="rail"><ol class="stops" id="stops"></ol><div class="loco" id="loco"><div class="lb"><img id="locoimg" alt=""></div></div></div></div>
 <div class="gut"><main class="win in" id="main"></main></div>
 <footer class="ft gut"><div class="in"><span id="foot"></span><span class="mk" id="mk"></span><button id="clr"></button><span class="org" id="org"></span></div></footer>
@@ -726,7 +726,7 @@ function pickLang(){const h=parseHash();if(h.lang)return h.lang;
  for(const x of ls){if(x==='zh'||/^zh-(cn|sg|my|hans)/.test(x))return 'sc';if(/^zh/.test(x))return 'tc';if(/^en/.test(x))return 'en'}return 'tc'}
 let LANG=pickLang(),L=I18N[LANG];
 /* v2.2:簡體(內地)唔載 Google Fonts,用系統字體;其餘語言非阻塞載入 */
-if(LANG!=='sc'){try{const gf=document.createElement('link');gf.rel='stylesheet';gf.id='gf';gf.href='https://fonts.googleapis.com/css2?family=Inter:wght@700;800;900&family=Noto+Sans+HK:wght@500;700;900&family=Noto+Sans+SC:wght@500;700;900&display=swap';document.head.appendChild(gf)}catch(e){}}
+/* v3.0:不載 Google Fonts,全部語言用系統字體(不作任何外部請求) */
 /* v2.2:來源代碼(?s=xxx,只限英數 _ -),只帶去報名表及電郵主旨;本頁唔收集、唔上傳 */
 const SRC=(()=>{try{const s=new URLSearchParams(location.search).get('s')||'';return /^[A-Za-z0-9_-]{1,24}$/.test(s)?s:''}catch(e){return ''}})();
 const REG={tc:'https://yuyue.wjx.com/vm/wpOAMBP.aspx',sc:'https://yuyue.wjx.com/vm/hGM46yE.aspx',en:'https://yuyue.wjx.com/vm/wpOAMBP.aspx'};
@@ -790,6 +790,7 @@ function skySVG(){let s=7;const r=()=>{s=(s*16807)%2147483647;return s/214748364
 /* ---------- 畫面 ---------- */
 function draw(){
  if(S.view==='hub'){pfBack();return}
+ {const ph=$('pfhome');if(ph)ph.textContent=({tc:'← 回到我的培訓',sc:'← 回到我的培训',en:'← My training'})[LANG]||'← 回到我的培訓'}
  const v=S.view;document.querySelectorAll('.popx').forEach(x=>x.remove());document.documentElement.lang=HTML_LANG[LANG];hashSync();document.title=t(v==='hub'?'docHub':v==='t1'?'doc1':v==='t3'?'doc3':'docTitle');
  document.querySelectorAll('[data-lang]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.lang===LANG)));
  $('lang').setAttribute('aria-label',t('langAria'));drawTheme();
@@ -1082,8 +1083,10 @@ function t1Open(g){if(!T1[g])return;const s=S.t1;s.g=g;const A=t1A(g,'a'),B=t1A(
 const gsN=q=>L.u.gs[q.gs]||q.gs;
 const t1St=(q,a,w)=>a==null?0:a===q.ans?(w!=null?2:1):3;
 const t1Picks=(q,a,w)=>[w,a].filter((x,i,A)=>x!=null&&x!==q.ans&&A.indexOf(x)===i);
-function t1Line(c,k){const i=c.l.indexOf(k);return i<0?'':c.x.split('\n')[i]}
-function t1Sol(q,c,picks){const Ls=c.x.split('\n');return `<div class="t1x vb cmp" data-vb="x">${Ls.map((ln,i)=>{const k=c.l[i],o='ABCD'.includes(k),mine=o&&picks.includes(k);return `<span class="sl ${o?'sl-o':'sl-'+k}${o&&k===q.ans?' key':''}${mine?' mine':''}"${mine?` data-tag="${esc(t('t1Mine'))}"`:''}>${esc(ln)}${i<Ls.length-1?'\n':''}</span>`}).join('')}</div><button class="hbtn" data-a="t1allopt">${esc(t('t1AllOpt'))}</button>`}
+const PFE={tc:['可能看錯了題目','可能算錯了','可能把概念弄混了','方法用得不對','推理有漏洞','可能看錯了圖表或符號'],sc:['可能看错了题目','可能算错了','可能把概念弄混了','方法用得不对','推理有漏洞','可能看错了图表或符号'],en:['You may have misread the question','A calculation slip','Two ideas got mixed up','The method does not fit','A gap in the reasoning','The diagram or notation was misread']};
+function pfClean(ln){const E=PFE[LANG]||PFE.tc,c=LANG==='en'?': ':'：';return String(ln).replace(/\(x\)\s*E([1-6])\s*[^：:]*[：:]\s*/g,(m,n)=>E[n-1]+c).replace(/\(x\)\s*/g,'').replace(/\(v\)\s*/g,'✓ ').replace(/學生/g,'同學').replace(/学生/g,'同学')}
+function t1Line(c,k){const i=c.l.indexOf(k);return i<0?'':pfClean(c.x.split('\n')[i])}
+function t1Sol(q,c,picks){const Ls=c.x.split('\n').map(pfClean),ki=c.l.indexOf('k'),kp=ki>=0?Ls[ki]:'',op=window.__t1o===q.id;return `${kp?`<p class="pfkey"><b>${esc(kp)}</b></p>`:''}<details class="pfsol" ${op?'open':''} ontoggle="window.__t1o=this.open?this.dataset.q:null" data-q="${esc(q.id)}"><summary>${esc(({tc:'看完整題解',sc:'看完整题解',en:'Show the full worked solution'})[LANG]||'看完整題解')}</summary><div class="t1x vb cmp" data-vb="x">${Ls.map((ln,i)=>{const k=c.l[i],o='ABCD'.includes(k),mine=o&&picks.includes(k);return `<span class="sl ${o?'sl-o':'sl-'+k}${o&&k===q.ans?' key':''}${mine?' mine':''}"${mine?` data-tag="${esc(t('t1Mine'))}"`:''}>${esc(ln)}${i<Ls.length-1?'\n':''}</span>`}).join('')}</div><button class="hbtn" data-a="t1allopt">${esc(t('t1AllOpt'))}</button></details>`}
 function vT1(){const s=S.t1;if(!s.g||!T1[s.g])return vT1Pick();return s.i>=5?vT1Res():vT1Q()}
 function vT1Pick(){const G=L.u.t1G;
  const st=g=>{const n=['a','b'].reduce((m,r)=>m+(S.t1.a[g+'-'+r]||[]).filter(x=>x!=null).length,0);return n?`<small>${esc(t('t1Prog',{n}))}</small>`:''};

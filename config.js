@@ -4,7 +4,7 @@
    was:'…'       = 與章程第 1 版(2026-10-26 生效)不同,畫面顯示「已由 … 延至 …」;src 記錄依據。
    日期一律香港時間;「或之前」包括當日。 */
 window.PF_CONFIG = {
-  version: '3.0-preview1b',
+  version: '3.0',
   build: '2026-11-16',
   charter: { ver: 1, effective: '2026-10-26' },
 
@@ -24,6 +24,10 @@ window.PF_CONFIG = {
       t2: 'https://claude.ai/artifact/TyHwbsqffcRStMP9D3Ueot',
       t3: 'https://claude.ai/artifact/LuEaScb21EKbZRM86YVCA8'
     },
+    /* 《學生需知》PDF(2026-11-16 由三份文件匯出;內地可開)。{l} = tc / sc;EN 用繁體版 */
+    notesPdf: 'files/notes-{t}-{l}.pdf',
+    /* 網上版(claude.ai)設為公開連結後改為 true,網站才會在 PDF 旁顯示「網上版」;未公開前只顯示 PDF */
+    notesOnline: false,
     platformT1: 'https://www.practiflyai.com',
     /* 未報名者的報名資訊(只作小連結,不在主路徑) */
     register: {

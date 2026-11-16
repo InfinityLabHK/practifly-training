@@ -45,7 +45,7 @@ a{color:var(--pf)}
 .bar .in{display:flex;align-items:center;gap:8px}
 .bar .tt{flex:1;min-width:0;color:var(--onsky)}
 .bar .tt small{display:block;font:800 .68rem/1.3 var(--f);letter-spacing:.08em;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar .tt b{display:block;font:900 1rem/1.3 var(--f);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .tt b{display:block;font:900 1rem/1.25 var(--f);white-space:normal;overflow-wrap:anywhere}
 .ib{flex:none;min-width:44px;min-height:44px;border-radius:12px;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:var(--onsky);font:800 .85rem/1.1 var(--f);padding:6px 10px;display:inline-grid;place-items:center;text-decoration:none}
 .lang{display:flex;flex:none;border:1.5px solid rgba(255,255,255,.4);border-radius:12px;padding:2px;gap:2px}
 .lang button{border:0;background:none;color:var(--onsky2);border-radius:9px;min-width:40px;min-height:40px;font:900 .82rem/1 var(--f)}
@@ -193,11 +193,90 @@ ul.ul{margin:.2em 0 .8em;padding-left:1.25em}ul.ul li{margin:.25em 0}
 /* 顯示設定 */
 .sheet{position:fixed;inset:0;z-index:50;background:rgba(5,4,24,.6);display:flex;align-items:flex-end;justify-content:center}
 .sheet .box{background:var(--win);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow:auto}
-.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#1F1A2B;color:#fff;padding:10px 16px;border-radius:12px;z-index:60;font-weight:700;max-width:88vw}
+.toast{position:fixed;left:50%;top:calc(66px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:#1F1A2B;color:#fff;padding:10px 16px;border-radius:12px;z-index:60;font-weight:700;max-width:88vw}
 .ft{color:var(--onsky2);font-size:.8rem;padding-top:6px;padding-bottom:calc(22px + env(safe-area-inset-bottom,0px));text-align:center;line-height:1.7}
-.ft a,.ft button{color:var(--onsky);background:none;border:0;text-decoration:underline;min-height:44px;padding:8px 6px;font-weight:700}
+.ft a,.ft button{color:var(--onsky);background:none;border:0;text-decoration:underline;min-height:44px;padding:8px 6px;font-weight:700;display:inline-flex;align-items:center;vertical-align:middle}
 .hide{display:none!important}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 :root[data-rm] *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 @media (min-width:700px){main.win{padding:26px 28px 30px}.nextbar{margin:22px -28px -30px;padding-left:28px;padding-right:28px}}
 @media print{.bar,.ft,.nextbar,.tts{display:none}body{background:#fff}main.win{border:0}}
+
+/* ===== v3.0 最終優化 ===== */
+:root[data-rm] *,:root[data-rm] *::before,:root[data-rm] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+/* 第一頁 */
+.wel{margin:-4px 0 10px}
+.wlf{margin:8px 0 4px;text-align:center}
+.wl2{justify-content:space-between;margin-top:6px}
+/* 機械貓正在做的事 */
+.scene{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:16/10;background:#DCEBF7 url(../img/plaza_wide.webp) center 60%/cover no-repeat;border:1px solid var(--line)}
+.scene.big{aspect-ratio:16/11;max-height:46vh;width:100%}
+.scene .me{position:absolute;left:50%;bottom:8%;height:62%;width:auto;transform:translateX(-50%);filter:drop-shadow(0 5px 5px rgba(20,30,80,.28));animation:bob 3.2s ease-in-out infinite}
+.scene .pbub{position:absolute;left:10px;right:10px;top:10px;background:rgba(255,255,255,.95);color:#1F1A2B;border-radius:14px;padding:8px 12px;font-weight:800;font-size:.95rem;line-height:1.45;z-index:3}
+.scene .prop,.scene .zz{position:absolute;left:calc(50% + 16%);bottom:14%;width:18%;max-width:72px;height:auto;z-index:2}
+.s-sleep.scene::after,.s-sleep.plaza::after{content:"";position:absolute;inset:0;background:rgba(12,14,60,.42);pointer-events:none;z-index:1}
+.s-sleep .me{filter:brightness(.82) saturate(.8);animation:breathe 4.5s ease-in-out infinite}
+.s-free.scene::after{content:"";position:absolute;inset:0;background:rgba(20,22,80,.3);pointer-events:none;z-index:1}
+.scene .zz{font:900 1.6rem/1 var(--f);color:#fff;z-index:4;text-shadow:0 2px 6px rgba(0,0,0,.4);bottom:52%}
+.zz i{display:inline-block;font-style:normal;animation:zz 2.6s ease-in-out infinite}.zz i:nth-child(2){animation-delay:.5s;font-size:1.25em}.zz i:nth-child(3){animation-delay:1s}
+@keyframes zz{0%{opacity:0;transform:translateY(6px)}40%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+@keyframes breathe{50%{transform:translateX(-50%) scale(1.02,.98)}}
+.prop.bounce{animation:bounce 1.1s ease-in-out infinite}@keyframes bounce{50%{transform:translateY(-10px)}}
+.prop.twinkle{animation:tw 2s ease-in-out infinite}@keyframes tw{50%{opacity:.45}}
+.me.nod{animation:nod .7s ease-in-out 2!important}@keyframes nod{50%{transform:translateX(-50%) rotate(-8deg) translateY(4px)}}
+/* 首頁:今天做一件事 */
+.today.hascat h2,.today.hascat p,.today.hascat .tstate{padding-right:92px}
+.today .tstate{font-size:.86rem;color:#E6DEFF;margin-bottom:6px}.today .tstate b{color:#fff;display:block}
+.today .tstate small{color:#CFC4F5}
+.today .tpar{background:rgba(255,255,255,.12);border-radius:12px;padding:8px 10px;font-size:.88rem}.today .tpar b{display:block;color:#FFE08A;font-size:.8rem}
+.today .tlife{position:absolute;right:6px;bottom:0;width:96px;height:118px}
+.today .tlife .tcat{position:absolute;right:0;bottom:0;height:104px;width:auto;opacity:.98;animation:bob 3.2s ease-in-out infinite}
+.today .tlife .prop,.today .tlife .zz{position:absolute;left:-6px;bottom:10px;width:34px}
+.today .tlife .zz{font:900 1.1rem/1 var(--f);color:#fff;bottom:70px;left:0}
+.today .lnk.on{color:#fff}
+.today.s-sleep{background:linear-gradient(150deg,#0E1240,#1B1650 60%,#2D2A6E)}
+.tags{margin-top:14px}
+/* 這一週、我的路線 */
+.week ol{margin:0}.week li small{color:var(--ink3)}
+.route{display:grid;gap:8px;margin:6px 0 12px}
+.rt{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow);min-height:56px}
+.rt b{font-weight:900;font-size:.95rem}.rt small{grid-column:1/-1;color:var(--ink3);font-size:.8rem}
+.stamps{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end}
+.stamps i{width:16px;height:16px;border-radius:50%;border:2px solid var(--ok);background:transparent}.stamps i.on{background:var(--ok)}
+/* 廣場(縮細)及同學的生活 */
+.plaza{aspect-ratio:16/9}
+.plaza .fr{position:absolute;height:25%;transform:translateX(-50%);z-index:2}
+.plaza .fr img{position:static;height:100%;width:auto;transform:none}
+.plaza .fr .prop,.plaza .fr .zz,.plaza .fr .mus{position:absolute;right:-30%;bottom:0;width:45%;height:auto}
+.plaza .fr .zz{font:900 .9rem/1 var(--f);color:#fff;bottom:70%;right:-10%}
+.plaza .fr .mus{font:900 1.2rem/1 var(--f);color:#6A45B5;bottom:60%;animation:tw 1.6s ease-in-out infinite}
+.plaza .fr.a-walk{animation:walk 6s ease-in-out infinite alternate}@keyframes walk{to{margin-left:18px}}
+.plaza .me{left:50%;bottom:12%;height:44%}
+/* 便利貼 */
+.notes{margin:10px 0}
+.ntw{display:grid;gap:10px}
+.nt{position:relative;background:#FFF4A8;color:#3B3300;border-radius:4px 4px 14px 4px;padding:10px 12px 10px 54px;box-shadow:0 3px 8px rgba(60,50,0,.18);transform:rotate(-.8deg);min-height:56px;font-weight:700;line-height:1.5}
+.nt:nth-child(2){transform:rotate(.7deg);background:#FFE7B8}.nt:nth-child(3){background:#E8F6C8}
+.nt img{position:absolute;left:8px;top:8px;width:38px;height:auto}
+.nt.mine{background:#DDEBFF;color:#13264D;padding-left:12px;margin-top:10px}.nt.mine b{display:block;font-size:.8rem}
+.nt .seen{display:inline-block;margin-left:8px;border:2px solid #12704A;color:#12704A;border-radius:8px;padding:0 6px;font-size:.78rem;transform:rotate(-6deg)}
+:root[data-hc] .nt{background:#fff;color:#000;border:2px solid #000;transform:none}
+.ntf .row{flex-wrap:nowrap}.ntf input{flex:1;min-width:0}
+/* 新手導覽 */
+.tour{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(560px,calc(100vw - 20px));z-index:40;background:var(--win);color:var(--ink);border:2px solid var(--pf);border-radius:18px;padding:12px;display:flex;gap:10px;align-items:flex-start;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.tour>img{width:56px;height:auto;flex:none}.tour b{display:block;font-size:.8rem;color:var(--pf)}.tour p{margin:4px 0 8px}
+.tourhl{outline:4px solid var(--cyan)!important;outline-offset:3px;border-radius:16px}
+/* 模組:標題旁朗讀;初小版「給家長讀」 */
+.mh{align-items:flex-start;flex-wrap:nowrap}.mh h1{flex:1;min-width:0}.mh .tts{flex:none}
+.pinfo{border:1.5px dashed var(--gold);border-radius:14px;padding:4px 12px;margin:12px 0;background:var(--goldsoft)}
+.pinfo>summary{cursor:pointer;font-weight:800;color:var(--gold);min-height:44px;display:flex;align-items:center}
+.catgrid.c3{grid-template-columns:repeat(3,1fr)}.catgrid.c3 img{height:96px}
+/* 給老師及校長 */
+.fwd{margin:6px 0 10px;padding:10px 12px;border-left:5px solid var(--pf);background:var(--card2);border-radius:8px}
+.tblw{overflow-x:auto;margin:8px 0 14px;border:1px solid var(--line);border-radius:12px}
+.tbl{border-collapse:collapse;width:100%;min-width:520px;font-size:.86rem}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+.tbl th{background:var(--card2);font-weight:900}
+.pdfs{list-style:none;padding-left:0}.pdfs a{display:flex;align-items:center;min-height:44px;padding:4px 0}
+@media print{body{background:#fff}.bar,.ft,.nextbar,.noprint,.tour,.toast{display:none!important}
+ body *{visibility:hidden}#one,#one *{visibility:visible}#one{position:absolute;left:0;top:0;width:100%;border:0;box-shadow:none}}
