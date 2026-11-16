@@ -29,6 +29,8 @@ const ls = { get(k) { try { return localStorage.getItem(k) } catch (e) { return 
 const fresh = () => ({ v: 3, setup: null, a: { fs: 0, hc: 0, rm: 0 }, m: {}, done: {}, cat: null, seed: 0, notes: [], mine: null, tour: 0, seenAt: 0 });
 let S = fresh();
 try { const o = JSON.parse(ls.get(KEY) || 'null'); if (o && o.v === 3) S = Object.assign(fresh(), o) } catch (e) { }
+/* R09:舊版便利貼曾引用同學寫過的句子;打開時刪去引用內容 */
+try { if (Array.isArray(S.notes)) S.notes = S.notes.filter(n => n && n.k).map(n => ({ k: n.k, w: n.w || (n.q ? 1 : 0), at: n.at })) } catch (e) { S.notes = [] }
 const save = () => ls.set(KEY, JSON.stringify(S));
 function legacy() { try { return JSON.parse(ls.get(LEG) || 'null') || {} } catch (e) { return {} } }
 
@@ -178,14 +180,15 @@ function catSheet() {
   document.body.appendChild(el); $('shx').focus();
 }
 /* 便利貼(不是聊天):完成新模組時機械貓留一張預寫的便利貼;同學可貼一張給牠(≤30 字,只存本機)。牠只用動作回應,不生成回覆。 */
+/* R09:不引用同學寫過的句子(共用裝置私隱),只記寫了幾格 */
 function addNote(k) {
-  let q = ''; const [trk, id] = k.split('.'); const M = X[trk] && X[trk].mods && mod(trk, id);
-  if (M) { const ms = S.m[k] || { d: {} }; for (const st of M.steps) for (const b of blocks(st.b)) if (b[0] === 'write' && !q) { const v = String(ms.d[b[1]] || '').trim(); if (v) q = v.length > 30 ? v.slice(0, 30) + '…' : v } }
-  S.notes = (S.notes || []).concat([{ k, q, at: Date.now() }]).slice(-12);
+  let w = 0; const [trk, id] = k.split('.'); const M = X[trk] && X[trk].mods && mod(trk, id);
+  if (M) { const ms = S.m[k] || { d: {} }; for (const st of M.steps) for (const b of blocks(st.b)) if (b[0] === 'write' && String(ms.d[b[1]] || '').trim()) w++ }
+  S.notes = (S.notes || []).concat([{ k, w, at: Date.now() }]).slice(-12);
 }
 function noteText(n, i) {
   const [trk, id] = n.k.split('.'), M = X[trk] && X[trk].mods && mod(trk, id), t = M ? M.t : T('ntT1');
-  return n.q ? T('ntC1', { t, q: n.q }) : T(i % 2 ? 'ntC2' : 'ntC0', { t });
+  return n.w ? T('ntC1', { t, n: n.w }) : T(i % 2 ? 'ntC2' : 'ntC0', { t });
 }
 function notesBoard() {
   const N = (S.notes || []).slice(-3).reverse(), me = S.mine, seen = me && me.at < BOOT;
