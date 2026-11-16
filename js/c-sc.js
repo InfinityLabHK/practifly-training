@@ -53,7 +53,7 @@ ui: {
  wlH: '你好！我是你的机械猫伙伴。', wlP: '我会陪你准备总决赛。每天做一件事就够。', wlFine: '给已报名的同学及家长 · 不用账号 · 进度不上传', wlStart: '开始（约 30 秒设定）', wlTeach: '我是老师／校长', ttlWelcome: '欢迎', ttlSetup: '设定',
  ls_wake: '起床、伸懒腰', ls_school: '上学中', ls_plaza: '在广场看书', ls_dinner: '吃晚饭', ls_homework: '做功课时间', ls_sleep: '睡觉中', ls_picnic: '在草地野餐', ls_ball: '在广场踢球', ls_free: '看星星', ls_hol: '放假，在草地野餐', lf_hol: '今天是公众假期，我在草地野餐。', lp_hol: '放假野餐', lf_sleep0: '我准备睡觉了。你可以先看看这里有什么，想开始就按下面的按钮。',
  lf_wake: '早上好！我刚醒，正在伸懒腰。', lf_school: '我也在上课，放学见。', lf_plaza: '我在广场看书。你想一起做一件事吗？', lf_dinner: '我在吃晚饭。吃饱了再来也可以。', lf_homework: '这段时间最适合做今天的一件事。', lf_sleep: '我睡了。你也早点休息，明天再做。', lf_picnic: '周末了，我在草地野餐。', lf_ball: '周末了，我在广场踢球。', lf_free: '周末晚上，我在看星星。想做一件事也可以。',
- lp_wake: '起了床', lp_school: '上了课', lp_plaza: '在广场看了书', lp_dinner: '吃了晚饭', lp_homework: '复习了功课', lp_sleep: '睡了一觉', lp_picnic: '去了野餐', lp_ball: '踢了波', lp_free: '看了星星',
+ lp_wake: '起了床', lp_school: '上了课', lp_plaza: '在广场看了书', lp_dinner: '吃了晚饭', lp_homework: '复习了功课', lp_sleep: '睡了一觉', lp_picnic: '去了野餐', lp_ball: '踢了球', lp_free: '看了星星',
  lfAway: '你上次来之后，我{s}。', lfAnd: '、', lfSleepH: '机械猫睡了', lfSleepGo: '仍然想做？打开培训地图', lfNow: '{n} 现在：{s}',
  ntH: '便利贴', ntC0: '“{t}”完成了。我把这个印贴在广场上。', ntC1: '“{t}”完成了。我记得你写了 {n} 格。', ntC2: '你做完了“{t}”。慢慢来就好。', ntT1: '赛道一 5 题模拟练习',
  ntMineL: '贴一张便利贴给机械猫（最多 30 字）', ntMineHint: '不要写姓名、电话、学校。只存在这台设备，不会上传。', ntPost: '贴上', ntSeen: '已看过', ntNew: '刚贴上', ntMine: '你贴的便利贴', ntDel: '撕走',
