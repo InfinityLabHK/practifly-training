@@ -50,5 +50,23 @@ old="function t1Sol(q,c,picks){const Ls=c.x.split('\\n');return `<div class=\"t1
 new="function t1Sol(q,c,picks){const Ls=c.x.split('\\n').map(pfClean),ki=c.l.indexOf('k'),kp=ki>=0?Ls[ki]:'',op=window.__t1o===q.id;return `${kp?`<p class=\"pfkey\"><b>${esc(kp)}</b></p>`:''}<details class=\"pfsol\" ${op?'open':''} ontoggle=\"window.__t1o=this.open?this.dataset.q:null\" data-q=\"${esc(q.id)}\"><summary>${esc(({tc:'看完整題解',sc:'看完整题解',en:'Show the full worked solution'})[LANG]||'看完整題解')}</summary><div class=\"t1x vb cmp\" data-vb=\"x\">${Ls.map((ln,i)=>{const k=c.l[i],o='ABCD'.includes(k),mine=o&&picks.includes(k);return `<span class=\"sl ${o?'sl-o':'sl-'+k}${o&&k===q.ans?' key':''}${mine?' mine':''}\"${mine?` data-tag=\"${esc(t('t1Mine'))}\"`:''}>${esc(ln)}${i<Ls.length-1?'\\n':''}</span>`}).join('')}</div><button class=\"hbtn\" data-a=\"t1allopt\">${esc(t('t1AllOpt'))}</button></details>`}"
 must(old,new)
 must("<style>body{margin:0}</style>","<style>body{margin:0}.pfhome{flex:none;min-height:44px;display:inline-flex;align-items:center;padding:6px 10px;border-radius:12px;border:1.5px solid rgba(255,255,255,.45);color:#F3EEFF;text-decoration:none;font-weight:800;font-size:.8rem;white-space:nowrap}.pfsol{margin:8px 0}.pfsol>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:800;text-decoration:underline;text-underline-offset:3px}.pfkey{margin:8px 0}@media (max-width:380px){#pfm{display:none}}</style>")
+# 9 獨立覆核(2026-11-16)
+# R12a 跟隨培訓網站的顯示設定(字體三級、高對比、減少動畫;只讀本機 localStorage,不上傳)
+must('<link rel="icon" href="../img/f0.webp" type="image/webp">','<link rel="icon" href="../img/f0.webp" type="image/webp"><script>try{var a=(JSON.parse(localStorage.getItem(\'pf-training-v3\')||\'{}\').a)||{},r=document.documentElement;if(a.fs)r.setAttribute(\'data-fs\',a.fs);if(a.hc){r.setAttribute(\'data-hc\',\'\');r.setAttribute(\'data-theme\',\'light\')}if(a.rm)r.setAttribute(\'data-rm\',\'\')}catch(e){}</script>')
+must("@media (max-width:380px){#pfm{display:none}}</style>","@media (max-width:380px){#pfm{display:none}}"
+ ":root[data-fs=\"1\"] body{zoom:1.15}:root[data-fs=\"2\"] body{zoom:1.3}"
+ ":root[data-hc] *{text-shadow:none!important}:root[data-hc] small,:root[data-hc] .fine{opacity:1!important}"
+ ":root[data-rm] *,:root[data-rm] *::before,:root[data-rm] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}"
+ ".startb small,.lvseg button small,button[data-wsq] small{opacity:1!important}.pfdisc{display:block;font-weight:800;margin:0 0 6px}</style>")
+# R12b 每屏保留「模擬練習,不是正式比賽題目」(放在頁腳,所有畫面都見到)
+must('<footer class="ft gut"><div class="in">','<footer class="ft gut"><div class="in"><span class="pfdisc" id="pfdisc"></span>')
+must("{const ph=$('pfhome');if(ph)ph.textContent=","{const pd=$('pfdisc');if(pd)pd.textContent=({tc:'模擬練習，不是正式比賽題目；一切以章程及大會公布為準。',sc:'模拟练习，不是正式比赛题目；一切以章程及大会公布为准。',en:'Practice only, not official competition questions. The Competition Rules and the organiser\u2019s notices prevail.'})[LANG]||''}\n {const ph=$('pfhome');if(ph)ph.textContent=")
+# R12c 開發字眼:「老師預覽」改「老師試看」;刪去指向已移除「下一步」區塊的一句
+# 高對比:固定用淺色主題(舊頁本身的淺色配色已達 AA),不跟深色設定
+must("try{const th=localStorage.getItem(TKEY);if(th==='dark'||th==='light')document.documentElement.setAttribute('data-theme',th)}catch(e){}","try{const th=localStorage.getItem(TKEY);if(document.documentElement.hasAttribute('data-hc'))document.documentElement.setAttribute('data-theme','light');else if(th==='dark'||th==='light')document.documentElement.setAttribute('data-theme',th)}catch(e){}")
+s=s.replace('老師預覽','老師試看').replace('老师预览','老师试看')
+must(";今屆日期見下方「下一步」。",";日期以《學生需知》為準。")
+must(";今届日期见下方“下一步”。",";日期以《学生需知》为准。")
+must(" This year’s dates are under “Next step” below."," See the Student Notes for dates.")
 open(os.path.join(root,'play','train.html'),'w',encoding='utf-8').write(s)
 print('train.html',len(s.encode()),'bytes; images',len(pairs))
