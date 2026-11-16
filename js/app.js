@@ -454,6 +454,7 @@ function vHome() {
    ${it && it.m && !sleep && showPar() && it.m.par ? `<div class="par say"><b>${esc(T('parH'))}</b>${fx(it.m.par)}</div>` : ''}
    ${near ? `<p class="lead say" id="tour-dl"><b>${esc(T('nearH'))}：</b>${esc(X.ui['c_' + near.t])} · ${esc(T(near.lab))} ${dateHTML(near.k)} <span class="fine">${esc(daysTo(near.d) === 0 ? T('dToday') : T('dLeft', { n: daysTo(near.d) }))}</span></p>` : ''}
    ${s.city && has('t1') ? `<div class="okbox say">${fx(T('cityNote'))}</div>` : ''}
+   ${s.role !== 's' ? parentCard(myTrks()) : ''}
    ${week}
    <h2>${esc(T('routeH'))}</h2><div class="route">${route}</div>
    ${plaza()}
@@ -462,6 +463,12 @@ function vHome() {
    ${paceHTML(myTrks())}
    <nav class="nav2" aria-label="${esc(T('moreH'))}"><a href="${href('setup')}">${esc(T('nav_setup'))}<small>${esc(T('nav_setupS'))}</small></a><a href="${href('teachers')}">${esc(T('nav_teachers'))}<small>${esc(T('teachEb'))}</small></a></nav>
    <div class="card soft"><b>${esc(T('notesH'))}</b><p class="fine">${esc(T('notesP'))}</p>${myTrks().map(notesLink).join('<br>')}</div>`;
+}
+/* 家長「你可以幫的事」(R07):只用《學生需知》原句 */
+function parentCard(trks) {
+  const L = trks.filter(t => X.parentBy[t]);
+  if (!L.length) return '';
+  return `<section class="card soft pcard" aria-label="${esc(T('pcH'))}"><h2>${esc(T('pcH'))}</h2>${L.map(t => { const P = X.parentBy[t]; return `<h3>${esc(trkName(t))}</h3><p class="say"><b>${esc(P[0])}</b>${esc(P[1])}</p><p class="say"><b>${esc(T('pcCan'))}</b>${esc(P[2])}</p><p class="say"><b>${esc(T('pcNot'))}</b>${esc(P[3])}</p>` }).join('')}<p class="fine">${esc(T('pcSrc'))}</p></section>`;
 }
 function dlLine(t) { const d = firstDl(t); return d ? `${esc(X.ui['c_' + t])}：${esc(T(d.lab))} ${dateHTML(d.k)}` : `${esc(X.ui['c_' + t])}：${esc(T('dlNone'))}` }
 
@@ -557,7 +564,7 @@ function vTeachers() {
    <h2>${esc(P.toolsH)}</h2><div class="choices">${P.tools.map(x => `<button class="opt" data-a="leg" data-h="${esc(x[2])}"><span>${esc(x[0])}<small>${esc(x[1])}</small></span></button>`).join('')}</div>
    <h2>${esc(P.pdfH)}</h2><ul class="ul pdfs">${P.pdfs.map(x => `<li><a href="files/${esc(x[1].replace('{l}', f))}" target="_blank" rel="noopener">${esc(x[0])}</a></li>`).join('')}</ul><p class="fine say">${fx(P.note)}</p>`;
 }
-const vSoon = k => { const o = X.soon[k]; return `<span class="eb">${esc(T('soonEb'))}</span><h1>${esc(T('nav_' + k))}</h1><p class="lead say">${fx(o.p)}</p><div class="card soft"><b>${esc(T('soonNow'))}</b><ul class="ul">${o.now.map(x => `<li class="say">${fx(x)}</li>`).join('')}</ul>${(S.setup ? myTrks() : ['t1', 't2', 't3']).map(notesLink).join('<br>')}</div><p><a class="btn" href="${href('home')}">${esc(T('backHome'))} →</a></p>` };
+const vSoon = k => { const o = X.soon[k]; return `<span class="eb">${esc(T('soonEb'))}</span><h1>${esc(T('nav_' + k))}</h1><p class="lead say">${fx(o.p)}</p>${k === 'parents' ? parentCard(S.setup ? myTrks() : ['t1', 't2', 't3']) : ''}<div class="card soft"><b>${esc(T('soonNow'))}</b><ul class="ul">${o.now.map(x => `<li class="say">${fx(x)}</li>`).join('')}</ul>${(S.setup ? myTrks() : ['t1', 't2', 't3']).map(notesLink).join('<br>')}</div><p><a class="btn" href="${href('home')}">${esc(T('backHome'))} →</a></p>` };
 
 /* ---------- 三步新手導覽(由機械貓帶;可略過;只自動出現一次;「我的設定」可重看) ---------- */
 let TOUR = null;
